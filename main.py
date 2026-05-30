@@ -63,22 +63,28 @@ logger = logging.getLogger(__name__)
 # ==========================================
 # 1. Configuration & Global Variables
 # ==========================================
-TOKEN = os.getenv("BOT_TOKEN")
-API_ID = int(os.getenv("API_ID", "0"))
-API_HASH = os.getenv("API_HASH", "")
-SESSION_STRING = os.getenv("SESSION_STRING", "") 
-MONGO_URL = os.getenv("MONGO_URI")
-OWNER_ID = int(os.getenv("ADMIN_ID", "0"))
+# ⚠️ নিচের ভ্যারিয়েবলগুলোতে আপনার নিজস্ব ভ্যালুগুলো বসিয়ে দিন:
+TOKEN = "YOUR_BOT_TOKEN_HERE"                  # এখানে আপনার Bot Token বসান
+API_ID = 12345678                              # এখানে আপনার API ID (integer) বসান
+API_HASH = "YOUR_API_HASH_HERE"                # এখানে আপনার API Hash বসান
+SESSION_STRING = ""                            # পাইরোগ্রাম সেশন স্ট্রিং থাকলে এখানে বসান (ঐচ্ছিক)
+MONGO_URL = "YOUR_MONGO_URI_HERE"              # এখানে আপনার MongoDB Connection URI বসান
+OWNER_ID = 123456789                           # এখানে আপনার Telegram Admin ID (integer) বসান
+CHANNEL_ID = "-100xxxxxxxxx"                   # এখানে আপনার মূল চ্যানেলের ID বসান
+ADMIN_PASS = "admin123"                        # ওয়েব প্যানেলের অ্যাডমিন পাসওয়ার্ড
+BOT_USERNAME = "BDMovieZoneBot"                # আপনার বটের ইউজারনেম
+
+# APP_URL আপনার অনুরোধ অনুযায়ী এনভায়রনমেন্ট ভ্যারিয়েবল হিসেবে রাখা হয়েছে
 APP_URL = os.getenv("APP_URL")
-CHANNEL_ID = os.getenv("CHANNEL_ID", "") 
-ADMIN_PASS = os.getenv("ADMIN_PASS", "admin123") 
-BOT_USERNAME = "BDMovieZoneBot"
 
 TUTORIAL_LINK = "https://t.me/HowtoDowlnoad/41"
 REQUEST_LINK = "https://t.me/+dld6-uEkdvQ5Yjg1"
 
-_db_ch = os.getenv("DB_CHANNEL_ID", "")
+_db_ch = "-100xxxxxxxxx"                       # এখানে আপনার Database Channel ID (স্ট্রিং হিসেবে) বসান
 DB_CHANNEL_ID = int(_db_ch) if _db_ch.lstrip('-').isdigit() else None
+
+# পোর্ট সেটিংস
+PORT_NUMBER = 8000                             # আপনার পোর্ট নাম্বার এখানে সেট করতে পারেন
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
@@ -724,7 +730,7 @@ async def del_keyword_reply(m: types.Message):
             await load_keyword_replies()
             await m.answer(f"✅ কিওয়ার্ড <b>{keyword}</b> ডিলিট করা হয়েছে!", parse_mode="HTML")
         else:
-            await m.answer("⚠️ এই কিওয়ার্ড পাওয়া যায়নি।")
+            await m.answer("⚠️ এই কিওয়ার্ড পাওয়া হয়নি।")
     except Exception:
         await m.answer("⚠️ সঠিক নিয়ম: <code>/delreply কিওয়ার্ড</code>", parse_mode="HTML")
 
@@ -4037,7 +4043,8 @@ async def spin_wheel(d: UserActionModel):
 async def get_leaderboard():
     tops = await db.users.find().sort("refer_count", -1).limit(10).to_list(10)
     lead = []
-    for u in tops: lead.append({"name": u.get("first_name", "User"), "refer_count": u.get("refer_count", 0), "coins": u.get("coins", 0)})
+    for u in tops: 
+        lead.append({"name": u.get("first_name", "User"), "refer_count": u.get("refer_count", 0), "coins": u.get("coins", 0)})
     return {"leaderboard": lead}
 
 @app.get("/api/requests/user_list/{uid}")
@@ -4149,7 +4156,7 @@ async def start():
     await load_admins()
     await load_banned_users()
     await load_keyword_replies()
-    config = uvicorn.Config(app, host="0.0.0.0", port=int(os.getenv("PORT", 8000)), loop="asyncio")
+    config = uvicorn.Config(app, host="0.0.0.0", port=PORT_NUMBER, loop="asyncio")
     server = uvicorn.Server(config)
     await pyro_app.start()
     asyncio.create_task(auto_delete_worker())
@@ -4159,5 +4166,7 @@ async def start():
     await dp.start_polling(bot)
 
 if __name__ == "__main__": 
-    try: asyncio.run(start())
-    except (KeyboardInterrupt, SystemExit): pass
+    try: 
+        asyncio.run(start())
+    except (KeyboardInterrupt, SystemExit): 
+        pass
