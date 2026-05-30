@@ -4101,8 +4101,13 @@ async def get_analytics(auth: bool = Depends(verify_admin)):
     return {"live_online": live, "active_today": len(a_t), "active_week": len(a_w), "total_reviews": await db.reviews.count_documents({}), "total_requests": await db.requests.count_documents({}), "pending_requests": await db.requests.count_documents({"status": "pending"}), "category_stats": c_s, "top_rated": t_r}
 
 # ==========================================
-# 🛑 STARTUP & CO-EXISTENCE INITIALIZATION
+# 🛑 CUSTOM UVICORN SERVER (To prevent signal hijacking)
 # ==========================================
+class CustomUvicornServer(uvicorn.Server):
+    def install_signal_handlers(self) -> None:
+        # এটি ওভাররাইড করার মাধ্যমে Uvicorn কে Aiogram-এর সিগন্যাল বা ইভেন্ট লুপে বাধা দেওয়া থেকে বিরত রাখা হলো
+        pass
+
 async def start():
     global video_queue
     video_queue = asyncio.Queue()
@@ -4122,17 +4127,18 @@ async def start():
     except Exception as e:
         logger.error(f"Caches failed to load properly: {e}")
 
-    # ⚠️ Uvicorn-এর Signal Capture নিষ্ক্রিয় করে Aiogram Polling চলমান রাখা হলো
+    # কনফিগারেশন থেকে install_handlers বাদ দেওয়া হলো
     config = uvicorn.Config(
         app, 
         host="0.0.0.0", 
         port=PORT_NUMBER, 
-        loop="asyncio", 
-        install_handlers=False
+        loop="asyncio"
     )
-    server = uvicorn.Server(config)
     
-    # ⚠️ Pyrogram সেশনকে সুরক্ষিতভাবে রান করানো হচ্ছে
+    # আমাদের কাস্টম সার্ভার ক্লাসটি ব্যবহার করা হলো
+    server = CustomUvicornServer(config)
+    
+    # Pyrogram সেশনটি সুরক্ষিতভাবে রান করানো হচ্ছে
     try:
         await pyro_app.start()
         logger.info("Pyrogram initialized successfully.")
@@ -4147,7 +4153,7 @@ async def start():
     except Exception as e:
         logger.error(f"Failed to clear webhook configurations: {e}")
         
-    # Uvicorn Background Task-এ রান হচ্ছে
+    # Uvicorn ব্যাকগ্রাউন্ড টাস্ক হিসেবে রান হচ্ছে
     asyncio.create_task(server.serve())
     logger.info("FastAPI Uvicorn running concurrently...")
     
