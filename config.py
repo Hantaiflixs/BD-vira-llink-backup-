@@ -25,7 +25,7 @@ TOKEN = "8228670087:AAGe7CrOi1mWnQPzv9k4zK4qenrRJOm18Qs"
 API_ID = 19234664                              
 API_HASH = "29c2f3b3d115cf1b0231d816deb271f5"                
 SESSION_STRING = ""                            
-MONGO_URL = "mongodb+srv://canamid247:canamid247@cluster0.ahmfr1p.mongodb.net/?appName=Cluster0"              
+MONGO_URL = "mongodb+srv://manogog673:manogog673@cluster0.ot1qt.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"              
 OWNER_ID = 8058281460                           
 CHANNEL_ID = "-1002376137081"                   
 ADMIN_PASS = "admin123"                        
