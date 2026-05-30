@@ -2,6 +2,7 @@
 import datetime
 import asyncio
 import random
+import html
 from bson import ObjectId
 from aiogram import types, F
 from aiogram.filters import Command, StateFilter
@@ -15,7 +16,7 @@ from config import (
     dp, bot, db, pyro_app, OWNER_ID, CHANNEL_ID, ADMIN_PASS,
     BOT_USERNAME, DB_CHANNEL_ID, TUTORIAL_LINK, REQUEST_LINK, APP_URL,
     admin_cache, banned_cache, auto_reply_cache, keyword_replies_cache,
-    video_queue, clear_app_cache, load_keyword_replies
+    video_queue, clear_app_cache, load_keyword_replies, logger
 )
 from helpers import make_wide_thumbnail
 
@@ -91,7 +92,7 @@ async def start_cmd(message: types.Message, state: FSMContext):
     markup = types.InlineKeyboardMarkup(inline_keyboard=kb)
     
     # ১৬:৯ রেশিওর ওয়েলকাম ব্যানার ইমেজ
-    WELCOME_BANNER = "https://files.catbox.moe/abd55m.jpg"
+    WELCOME_BANNER = "https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=1025&auto=format&fit=crop"
 
     if uid in admin_cache:
         # অ্যাডমিনদের জন্য মেসেজ
@@ -121,7 +122,7 @@ async def start_cmd(message: types.Message, state: FSMContext):
         user_name = message.from_user.first_name or "User"
         text = (
             f"👋 <b>Welcome, {user_name}!</b>\n"
-            f"Welcome to Movies Link BD - Cinema in your pocket.\n\n"
+            f"Welcome to MovieZone BD - Cinema in your pocket.\n\n"
             f"📊 <b>YOUR PROFILE STATS:</b>\n"
             f"━━━━━━━━━━━━━━━━━━\n"
             f"👤 <b>Account:</b> {user_name}\n"
@@ -460,7 +461,7 @@ async def del_keyword_reply(m: types.Message):
         await m.answer("⚠️ সঠিক নিয়ম: <code>/delreply কিওয়ার্ড</code>", parse_mode="HTML")
 
 # ==========================================
-# 🛑 SMART AUTO-RESPONDER & ADMIN FORWARDING
+# 🛑 SMART AUTO-RESPONDER & ADMIN FORWARDING (SECURED WITH HTML ESCAPING)
 # ==========================================
 @dp.message(lambda m: m.chat.type == "private" and m.from_user.id not in admin_cache and (m.text is None or not m.text.startswith("/")))
 async def forward_to_admin(m: types.Message):
@@ -485,15 +486,20 @@ async def forward_to_admin(m: types.Message):
         all_admins = set([OWNER_ID])
         async for a in db.admins.find(): all_admins.add(a["user_id"])
             
+        # HTML Entity Parsing ক্র্যাশ এড়াতে নাম এবং মেসেজ এস্কেপ করা হলো
+        escaped_name = html.escape(m.from_user.first_name or "User")
+        escaped_text = html.escape(m.text) if m.text else "[Media/File]"
+            
         for admin_id in all_admins:
             try:
                 await bot.send_message(
                     admin_id, 
-                    f"📩 <b>Message from <a href='tg://user?id={m.from_user.id}'>{m.from_user.first_name or 'User'}</b> (<code>{m.from_user.id}</code>):\n\n{m.text or '[Media/File]'}", 
+                    f"📩 <b>Message from <a href='tg://user?id={m.from_user.id}'>{escaped_name}</a></b> (<code>{m.from_user.id}</code>):\n\n{escaped_text}", 
                     parse_mode="HTML",
                     reply_markup=markup
                 )
-            except Exception: pass
+            except Exception as err:
+                logger.error(f"HTML Forward crash bypassed: {err}")
         
         if m.from_user.id not in auto_reply_cache:
             auto_reply_cache[m.from_user.id] = True
