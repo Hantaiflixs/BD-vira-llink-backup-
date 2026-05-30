@@ -27,7 +27,7 @@ API_HASH = "29c2f3b3d115cf1b0231d816deb271f5"
 SESSION_STRING = ""                            
 MONGO_URL = "mongodb+srv://manogog673:manogog673@cluster0.ot1qt.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"              
 OWNER_ID = 8058281460                           
-CHANNEL_ID = "-1002376137081"                   
+CHANNEL_ID = "-1003569770431"                   
 ADMIN_PASS = "admin123"                        
 BOT_USERNAME = "MoviesLinkBD_Bot"                
 
@@ -36,7 +36,7 @@ APP_URL = os.getenv("APP_URL", "http://localhost:8000")
 TUTORIAL_LINK = "https://t.me/HowtoDowlnoad/41"
 REQUEST_LINK = "https://t.me/+dld6-uEkdvQ5Yjg1"
 
-_db_ch = "-1003983546270"                       
+_db_ch = "-1003972700063"                       
 DB_CHANNEL_ID = int(_db_ch) if _db_ch.lstrip('-').isdigit() else None
 
 PORT_NUMBER = 8000                             
