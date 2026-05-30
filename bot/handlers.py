@@ -656,7 +656,7 @@ async def search_series_for_bulk(m: types.Message, state: FSMContext):
     ]
     results = await db.movies.aggregate(pipeline).to_list(10)
 
-    if not Guide := results: 
+    if not results: 
         return await m.answer("⚠️ এই নামে কোনো সিরিজ পাওয়া যায়নি! আবার সঠিক নাম লিখে পাঠান।")
 
     await state.update_data(search_results=results)
