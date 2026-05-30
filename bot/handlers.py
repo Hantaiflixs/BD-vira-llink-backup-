@@ -121,7 +121,7 @@ async def start_cmd(message: types.Message, state: FSMContext):
         user_name = message.from_user.first_name or "User"
         text = (
             f"👋 <b>Welcome, {user_name}!</b>\n"
-            f"Welcome to MovieZone BD - Cinema in your pocket.\n\n"
+            f"Welcome to Movies Link BD - Cinema in your pocket.\n\n"
             f"📊 <b>YOUR PROFILE STATS:</b>\n"
             f"━━━━━━━━━━━━━━━━━━\n"
             f"👤 <b>Account:</b> {user_name}\n"
