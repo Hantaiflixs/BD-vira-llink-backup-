@@ -101,7 +101,7 @@ async def start_cmd(message: types.Message, state: FSMContext):
     markup = types.InlineKeyboardMarkup(inline_keyboard=kb)
     
     # ১৬:৯ রেশিওর ওয়েলকাম ব্যানার ইমেজ
-    WELCOME_BANNER = "https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=1025&auto=format&fit=crop"
+    WELCOME_BANNER = "https://files.catbox.moe/abd55m.jpg"
 
     if uid in admin_cache:
         # অ্যাডমিনদের জন্য মেসেজ
@@ -776,7 +776,7 @@ async def group_request_responder(m: types.Message):
                 # ক. গ্রুপ থেকে ফালতু লিংকটি সাথে সাথে ডিলিট করে দেওয়া হলো
                 await bot.delete_message(chat_id=m.chat.id, message_id=m.message_id)
                 
-                # খ. কড়া ভাষায় স্প্যামারকে খাঁটি বাংলা রোস্টিং করা হচ্ছে
+                # খ. কড়া ভাষায় স্প্যামারকে খাঁটি বাংলা রোস্টিং করা হচ্ছে (m.answer এর পরিবর্তে সরাসরি bot.send_message ব্যবহার করা হলো)
                 escaped_name = html.escape(m.from_user.first_name or "User")
                 roast_replies = [
                     f"🚨 <b>ওই বলদ {escaped_name}!</b> এটা কি তোর বাপের জায়গা পাইছিস যে এখানে লিংক শেয়ার করতেছিস? যা ভাগ এখান থেকে! 😡",
@@ -785,7 +785,9 @@ async def group_request_responder(m: types.Message):
                     f"🚨 <b>তোর বাপের রাজত্ব পাইছিস {escaped_name}?</b> গ্রুপে পারমিশন ছাড়া লিংক শেয়ার করা একদম নিষেধ! বেশি পন্ডিতি করলে ডিরেক্ট ব্যান করে দেব! 😡🔥"
                 ]
                 roast_text = random.choice(roast_replies)
-                sent_warn = await m.answer(roast_text, parse_mode="HTML")
+                
+                # original message ডিলিট হওয়ার পরও যেন মেসেজ ১০০% শো করে সেজন্য bot.send_message ব্যবহার করা হয়েছে
+                sent_warn = await bot.send_message(chat_id=m.chat.id, text=roast_text, parse_mode="HTML")
                 
                 # গ. গ্রুপের সৌন্দর্য রক্ষার্থে বটের কড়া ওয়ার্নিং মেসেজটি ২০ সেকেন্ড পর স্বয়ংক্রিয়ভাবে মুছে যাবে (নন-ব্লকিং)
                 asyncio.create_task(delete_after_delay(m.chat.id, sent_warn.message_id, 20))
@@ -1208,7 +1210,7 @@ async def receive_movie_category(m: types.Message, state: FSMContext):
                 [types.InlineKeyboardButton(text="♻️ MOVIE REQUEST ♻️", url=REQUEST_LINK)]
             ]
             markup = types.InlineKeyboardMarkup(inline_keyboard=kb)
-            caption = (f"🔥 <b>নতুন ফাইল যুক্ত হয়েছে!</b>\n\n📌 <b>টাইটেল:</b> {title}\n🏷 <b>কোয়ালিটি:</b> {quality}\n🎭 <b>ক্যাটাগরি:</b> {cat_display}\n\n👇 <i>বট থেকে ভিডিওটি পেতে নিচের বাটনে ক্লিক করুন।</i>")
+            caption = (f"🔥 <b>নতুন ফাইল যুক্ত হয়েছে!</b>\n\n📌 <b>টাইটেল:</b> {title}\n🏷 <b>কোয়ালিটি:</b> {quality}\n🎭 <b>ক্যাটাগরি:</b> {cat_display}\n\n👇 <i>বট থেকে...</i>")
             await bot.send_photo(chat_id=CHANNEL_ID, photo=photo_id, caption=caption, parse_mode="HTML", reply_markup=markup)
         except Exception: pass
 
