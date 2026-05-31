@@ -151,7 +151,7 @@ async def refer_info_start_cb(c: types.CallbackQuery):
     await c.answer()
 
 # ==========================================
-# 🛑 MAYA AI ASSISTANT FOR ADMINS (NEW CO-PILOT COMMANDS)
+# 🛑 MAYA AI ASSISTANT FOR ADMINS (CO-PILOT COMMANDS)
 # ==========================================
 @dp.message(Command("maya"), lambda m: m.from_user.id in admin_cache)
 async def admin_maya_chat(m: types.Message):
@@ -200,6 +200,67 @@ async def admin_greeting_gen(m: types.Message):
     status_msg = await m.answer(f"⏳ <i>Generating customized welcome greeting for '{event}'...</i>", parse_mode="HTML")
     try:
         ai_prompt = f"Write a beautiful, warm, and highly engaging welcome greeting in Bangladeshi Bengali with stylish emojis for our Telegram bot start menu. The theme/event is: '{event}'. Make it sound very welcoming!"
+        reply = await get_smart_reply(ai_prompt, m.from_user.first_name, db, user_id=m.from_user.id)
+        await bot.delete_message(m.chat.id, status_msg.message_id)
+        await m.reply(reply, parse_mode="HTML")
+    except Exception as e:
+        await status_msg.edit_text(f"❌ <b>Error:</b> {str(e)}", parse_mode="HTML")
+
+# ==========================================
+# 🛑 NEW ADVANCED AI COMMANDS FOR ADMINS
+# ==========================================
+@dp.message(Command("broadcast_copy"), lambda m: m.from_user.id in admin_cache)
+async def admin_broadcast_copy_gen(m: types.Message):
+    # ডাটাবেস থেকে সর্বশেষ ৩টি মুভি ফেচ করা হচ্ছে
+    latest_cursor = db.movies.find({}, {"title": 1}).sort("created_at", -1).limit(3)
+    latest_movies = await latest_cursor.to_list(length=3)
+    movie_list_str = ", ".join([mv["title"] for mv in latest_movies]) if latest_movies else "No recent movies"
+    
+    status_msg = await m.answer("⏳ <i>Drafting high-converting broadcast notification...</i>", parse_mode="HTML")
+    try:
+        ai_prompt = (
+            f"Draft an extremely engaging, emotional, and persuasive Telegram broadcast message/newsletter in Bangladeshi Bengali with stylish emojis. "
+            f"The goal is to invite users to watch our latest blockbuster releases. The latest movies added are: '{movie_list_str}'. "
+            f"Tell them they can watch/download these in 1-click in our Mini-App by clicking the button below."
+        )
+        reply = await get_smart_reply(ai_prompt, m.from_user.first_name, db, user_id=m.from_user.id)
+        await bot.delete_message(m.chat.id, status_msg.message_id)
+        await m.reply(reply, parse_mode="HTML")
+    except Exception as e:
+        await status_msg.edit_text(f"❌ <b>Error:</b> {str(e)}", parse_mode="HTML")
+
+@dp.message(Command("dmca"), lambda m: m.from_user.id in admin_cache)
+async def admin_dmca_analyzer(m: types.Message):
+    prompt = m.text.split(" ", 1)
+    if len(prompt) < 2:
+        return await m.answer("⚠️ <b>Please specify the DMCA text!</b>\nUsage: <code>/dmca [paste claim text here]</code>", parse_mode="HTML")
+    
+    status_msg = await m.answer("⏳ <i>Analyzing copyright claim safety...</i>", parse_mode="HTML")
+    try:
+        ai_prompt = (
+            f"Analyze this raw copyright/DMCA claim/complaint text. "
+            f"Extract the movie/series name being reported. Then, write a warning report in Bangladeshi Bengali to the admin advising them. "
+            f"If a movie is found, write the exact command they can run to delete it, like: `/delmovie [Movie Name]`. "
+            f"Here is the DMCA text:\n\n{prompt[1]}"
+        )
+        reply = await get_smart_reply(ai_prompt, m.from_user.first_name, db, user_id=m.from_user.id)
+        await bot.delete_message(m.chat.id, status_msg.message_id)
+        await m.reply(reply, parse_mode="HTML")
+    except Exception as e:
+        await status_msg.edit_text(f"❌ <b>Error:</b> {str(e)}", parse_mode="HTML")
+
+@dp.message(Command("retarget"), lambda m: m.from_user.id in admin_cache)
+async def admin_retarget_copy_gen(m: types.Message):
+    prompt = m.text.split(" ", 1)
+    target = prompt[1] if len(prompt) > 1 else "Action blockbusters"
+    status_msg = await m.answer(f"⏳ <i>Drafting personalized retargeting campaign for '{target}'...</i>", parse_mode="HTML")
+    try:
+        ai_prompt = (
+            f"Write a highly personalized, psychological re-engagement/retargeting message in Bangladeshi Bengali with emojis. "
+            f"The target audience is users who previously watched or searched for '{target}'. "
+            f"Address them warmly (use placeholders like '{{Name}}'), and write in a way that feels like Netflix's personalized recommendations: "
+            f"'Because you watched/searched for X, we recommend checking out Y on our Mini-App...'. Make it highly clickable."
+        )
         reply = await get_smart_reply(ai_prompt, m.from_user.first_name, db, user_id=m.from_user.id)
         await bot.delete_message(m.chat.id, status_msg.message_id)
         await m.reply(reply, parse_mode="HTML")
@@ -574,7 +635,7 @@ async def del_keyword_reply(m: types.Message):
         await m.answer("⚠️ সঠিক নিয়ম: <code>/delreply কিওয়ার্ড</code>", parse_mode="HTML")
 
 # ==========================================
-# 🛑 SMART AUTO-RESPONDER & ADMIN FORWARDING (SECURED WITH HTML ESCAPING)
+# 🛑 SMART AUTO-RESPONDER & ADMIN FORWARDING (SECURED WITH HTML ESCAPING & ONE-CLICK BAN)
 # ==========================================
 @dp.message(lambda m: m.chat.type == "private" and m.from_user.id not in admin_cache and (m.text is None or not m.text.startswith("/")))
 async def forward_to_admin(m: types.Message):
@@ -592,8 +653,20 @@ async def forward_to_admin(m: types.Message):
                 break
 
     if not is_manual_reply:
+        # প্রমোশনাল বা স্প্যাম লিংক স্ক্যান করা হচ্ছে (অটো-মডারেশন)
+        is_spam = False
+        if "http" in user_text_lower or "t.me" in user_text_lower or "joinchat" in user_text_lower or "bit.ly" in user_text_lower:
+            is_spam = True
+            
+        spam_tag = "⚠️ <b>[SUSPECTED SPAM/PROMOTION]</b>\n" if is_spam else ""
+        
         builder = InlineKeyboardBuilder()
         builder.button(text="✍️ রিপ্লাই দিন", callback_data=f"reply_{m.from_user.id}")
+        
+        # স্প্যামার হলে সরাসরি ১-ক্লিক ব্যান বাটন যুক্ত হবে
+        if is_spam:
+            builder.button(text="🚫 BAN USER", callback_data=f"admin_ban_{m.from_user.id}")
+            
         markup = builder.as_markup()
         
         all_admins = set([OWNER_ID])
@@ -607,7 +680,7 @@ async def forward_to_admin(m: types.Message):
             try:
                 await bot.send_message(
                     admin_id, 
-                    f"📩 <b>Message from <a href='tg://user?id={m.from_user.id}'>{escaped_name}</a></b> (<code>{m.from_user.id}</code>):\n\n{escaped_text}", 
+                    f"{spam_tag}📩 <b>Message from <a href='tg://user?id={m.from_user.id}'>{escaped_name}</a></b> (<code>{m.from_user.id}</code>):\n\n{escaped_text}", 
                     parse_mode="HTML",
                     reply_markup=markup
                 )
@@ -645,6 +718,18 @@ async def forward_to_admin(m: types.Message):
                     "timestamp": datetime.datetime.utcnow()
                 })
             except Exception: pass
+
+# ১-ক্লিক ব্যান বাটন প্রসেস (Callback)
+@dp.callback_query(F.data.startswith("admin_ban_"))
+async def admin_one_click_ban_cb(c: types.CallbackQuery):
+    if c.from_user.id not in admin_cache: return
+    target_uid = int(c.data.split("_")[2])
+    
+    await db.banned.update_one({"user_id": target_uid}, {"$set": {"user_id": target_uid}}, upsert=True)
+    banned_cache.add(target_uid)
+    
+    await c.message.edit_text(c.message.text + f"\n\n🚫 <b>User {target_uid} has been BANNED successfully!</b>", parse_mode="HTML")
+    await c.answer("User Banned successfully!", show_alert=True)
 
 # ==========================================
 # 🛑 MOVIE & EPISODE MANUAL UPLOAD LOGIC
