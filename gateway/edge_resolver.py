@@ -1,12 +1,11 @@
-import os
 import httpx
 from fastapi import APIRouter, Request, Response
 from fastapi.responses import JSONResponse
 
-# নতুন রাউটার ইনিশিয়েট করা (যা মূল কোডে হাত না দিয়েই কাজ করবে)
+# গেটওয়ে রাউটার ইনিশিয়েট করা
 gateway_router = APIRouter(prefix="/gateway", tags=["Network Gateway"])
 
-# কিছু গ্লোবাল ফ্রি পাবলিক ডিএনএস এবং প্রক্সি গেটওয়ে লিস্ট (যা সহজে ব্লক হয় না)
+# ব্যাকআপ এবং পাবলিক গেটওয়ে হোস্ট লিস্ট
 FALLBACK_GATEWAYS = [
     "https://workers.cloudflare.com",
     "https://vercel.live",
@@ -16,34 +15,26 @@ FALLBACK_GATEWAYS = [
 @gateway_router.get("/dns-check")
 async def check_network_status(request: Request):
     """
-    ইউজারের নেটওয়ার্ক কানেকশন টেস্ট করার জন্য এন্ডপয়েন্ট।
-    ইউজার যদি সরাসরি কানেক্ট করতে না পারে, তবে সে এই গেটওয়ের সাহায্য নেবে।
+    ইউজারের লোকাল নেটওয়ার্ক কানেকশন টেস্ট করার এন্ডপয়েন্ট।
     """
-    client_host = request.client.host
     return {
         "status": "online",
         "message": "Gateway Connection Successful",
-        "client_ip": client_host,
+        "client_ip": request.client.host if request.client else "Unknown",
         "suggested_gateways": FALLBACK_GATEWAYS
     }
 
 @gateway_router.api_route("/proxy/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
 async def reverse_proxy_gateway(request: Request, path: str):
     """
-    একটি ইন্টারনাল রিভার্স প্রক্সি যা যেকোনো ব্লকড নেটওয়ার্কের ট্রাফিককে 
-    অন্য একটি সচল সার্ভারের মাধ্যমে আপনার ব্যাকএন্ডে টানেল করে নিয়ে আসে।
+    রিভার্স প্রক্সি টানেল যা যেকোনো ব্লকড রিকোয়েস্টকে ব্যাকএন্ডে রি-রুট করে।
     """
-    # আপনার লোকাল হোস্ট বা মেইন সার্ভার ইউআরএল (যেমন: Render বা VPS এর লোকাল পোর্ট)
     target_url = f"http://127.0.0.1:8000/{path}" 
-    
-    # রিকোয়েস্টের হেডার ও ডাটা কপি করা
     headers = dict(request.headers)
-    # Host হেডারটি পরিবর্তন করা যাতে লোকাল হোস্ট কনফ্লিক্ট না করে
     headers.pop("host", None)
     
     async with httpx.AsyncClient() as client:
         try:
-            # মেথড অনুযায়ী রিকোয়েস্ট পাঠানো
             content = await request.body()
             response = await client.request(
                 method=request.method,
@@ -51,9 +42,8 @@ async def reverse_proxy_gateway(request: Request, path: str):
                 headers=headers,
                 params=request.query_params,
                 content=content,
-                timeout=10.0
+                timeout=12.0
             )
-            
             return Response(
                 content=response.content,
                 status_code=response.status_code,
