@@ -27,6 +27,14 @@ app.add_middleware(
 # এপিআই রাউটারসমূহ রেজিস্টার করা হলো
 app.include_router(api_router)
 
+# 🌐 নেটওয়ার্ক গেটওয়ে রাউটারটি নিরাপদ উপায়ে রেজিস্টার করা হলো
+try:
+    from gateway.edge_resolver import gateway_router
+    app.include_router(gateway_router)
+    logger.info("Network Gateway router registered successfully.")
+except ImportError as e:
+    logger.warning(f"Gateway module setup bypassed. Error: {e}")
+
 # আপকামিং রাউটারটি নিরাপদ উপায়ে রেজিস্টার করা হলো
 try:
     from upcoming_router import upcoming_router
@@ -94,7 +102,7 @@ async def start():
     except Exception as e:
         logger.error(f"Pyrogram start-up bypassed or errored: {e}. Media functions may use fallback tasks.")
         
-    # ব্যাকগ্রাউন্ড টাস্কসমূহ চালু করা হচ্ছে
+    # バックグラウンドব্যাকগ্রাউন্ড টাস্কসমূহ চালু করা হচ্ছে
     asyncio.create_task(auto_delete_worker())
     asyncio.create_task(video_queue_worker()) 
     
