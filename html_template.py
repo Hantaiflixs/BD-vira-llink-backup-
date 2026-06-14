@@ -41,11 +41,6 @@ HTML_CODE = r"""
 
         .search-box { padding: 15px; }
         .search-input { width: 100%; padding: 16px; border-radius: 25px; border: none; outline: none; text-align: center; background: #1e293b; color: #fff; font-size: 18px; font-weight: bold; }
-        
-        .category-container { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 15px 15px; justify-content: center; }
-        .cat-btn { background: rgba(30, 41, 59, 0.8); color: #cbd5e1; border: 1px solid #334155; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: bold; cursor: pointer; transition: all 0.2s ease; backdrop-filter: blur(5px); white-space: nowrap; }
-        .cat-btn:active { transform: scale(0.95); }
-        .cat-btn.active { background: linear-gradient(45deg, #ef4444, #f97316); color: white; border-color: transparent; box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4); }
 
         .section-title { padding: 5px 15px 15px; font-size: 20px; font-weight: 900; display: flex; align-items: center; gap: 8px; color:#ff416c; }
         
@@ -269,7 +264,7 @@ HTML_CODE = r"""
         </div>
         
         <a onclick="openReferModal()"><i class="fa-solid fa-share-nodes text-blue-400"></i> Refer & Earn</a>
-        <a onclick="openRequestsTrackerModal()"><i class="fa-solid fa-code-pull-request text-green-400"></i> Request Movie & Track</a>
+        <a onclick="openRequestsTrackerModal()"><i class="fa-solid fa-code-pull-request text-green-400"></i> Request Video & Track</a>
         <a onclick="openWatchlistModal()"><i class="fa-solid fa-bookmark text-red-400"></i> My Watchlist</a>
         <a onclick="openAdCampModal()"><i class="fa-solid fa-bullhorn text-yellow-400"></i> Promote Channel/Web</a>
         <div style="height: 1px; background: #334155; margin: 4px 0;"></div>
@@ -281,10 +276,8 @@ HTML_CODE = r"""
     </div>
 
     <div class="search-box">
-        <input type="text" id="searchInput" class="search-input" placeholder="🔍 Search Movies or Series...">
+        <input type="text" id="searchInput" class="search-input" placeholder="🔍 Search Videos...">
     </div>
-
-    <div id="categoryBox" class="category-container"></div>
 
     <div id="trendingWrapper">
         <div class="section-title"><i class="fa-solid fa-bolt text-yellow-400"></i>Trending now</div>
@@ -332,7 +325,7 @@ HTML_CODE = r"""
     <div id="qualityModal" class="modal">
         <div class="modal-content">
             <div class="close-icon" onclick="document.getElementById('qualityModal').style.display='none'"><i class="fa-solid fa-xmark"></i></div>
-            <h2 id="modalTitle" style="color:#38bdf8; margin-bottom: 5px; font-size: 22px; font-weight:900;">Movie Title</h2>
+            <h2 id="modalTitle" style="color:#38bdf8; margin-bottom: 5px; font-size: 22px; font-weight:900;">Video Title</h2>
             
             <div style="margin-bottom: 15px; display: flex; justify-content: center; gap: 10px;">
                 <button id="bookmarkBtn" class="home-btn" style="border-radius: 12px; font-size: 13px;" onclick="toggleWatchlist()"></button>
@@ -398,7 +391,7 @@ HTML_CODE = r"""
                     <p style="color:#4ade80; font-size: 14px; font-weight:bold; margin-bottom: 6px;"><i class="fa-solid fa-star"></i> VIP Benefits:</p>
                     <ul style="color:#cbd5e1; font-size: 12px; line-height: 1.5; padding-left: 15px;">
                         <li style="margin-bottom: 3px;"><b>Zero Ads:</b> Direct video unlock. No waiting.</li>
-                        <li style="margin-bottom: 3px;"><b>Priority Requests:</b> Admins prioritize your movies.</li>
+                        <li style="margin-bottom: 3px;"><b>Priority Requests:</b> Admins prioritize your videos.</li>
                         <li><b>Exclusive Badge:</b> Golden VIP profile badge.</li>
                     </ul>
                 </div>
@@ -473,11 +466,11 @@ HTML_CODE = r"""
     <div id="requestsTrackerModal" class="modal">
         <div class="modal-content">
             <div class="close-icon" onclick="document.getElementById('requestsTrackerModal').style.display='none'"><i class="fa-solid fa-xmark"></i></div>
-            <h2 style="color:#10b981; font-size: 22px; margin-bottom:10px;"><i class="fa-solid fa-code-pull-request"></i> Movie Request Status</h2>
-            <p style="color:#cbd5e1; font-size:13px; margin-bottom:15px;">Submit and track the processing status of your requested movies!</p>
+            <h2 style="color:#10b981; font-size: 22px; margin-bottom:10px;"><i class="fa-solid fa-code-pull-request"></i> Video Request Status</h2>
+            <p style="color:#cbd5e1; font-size:13px; margin-bottom:15px;">Submit and track the processing status of your requested videos!</p>
             
             <div style="display:flex; gap:10px; margin-bottom: 20px;">
-                <input type="text" id="reqTrackerInput" class="search-input" style="border-radius:12px; text-align:left; padding:10px 15px; font-size:15px;" placeholder="Enter Movie/Series name...">
+                <input type="text" id="reqTrackerInput" class="search-input" style="border-radius:12px; text-align:left; padding:10px 15px; font-size:15px;" placeholder="Enter Video name...">
                 <button class="btn-submit" style="width: auto; padding:0 20px; font-size:14px;" onclick="submitReqTracker()">Request</button>
             </div>
 
@@ -491,7 +484,7 @@ HTML_CODE = r"""
             <h2 style="color:#fcd34d; font-size: 22px; margin-bottom:10px;"><i class="fa-solid fa-bullhorn"></i> Promote Channel</h2>
             <p style="color:#cbd5e1; font-size:13px; margin-bottom:15px;">Run your advertisement in front of thousands of users!</p>
             
-            <input type="text" id="campTitle" class="search-input" style="border-radius:10px; margin-bottom:10px; font-size:15px;" placeholder="Ad Title (e.g. Join Best Movie Bot)">
+            <input type="text" id="campTitle" class="search-input" style="border-radius:10px; margin-bottom:10px; font-size:15px;" placeholder="Ad Title (e.g. Join Best Video Bot)">
             <input type="text" id="campSubtitle" class="search-input" style="border-radius:10px; margin-bottom:10px; font-size:15px;" placeholder="Ad Subtitle (e.g. একদম ফ্রি।)">
             <input type="url" id="campLink" class="search-input" style="border-radius:10px; margin-bottom:10px; font-size:15px;" placeholder="https://t.me/yourlink">
             <input type="url" id="campImg" class="search-input" style="border-radius:10px; margin-bottom:15px; font-size:15px;" placeholder="Image URL (Optional)">
@@ -523,7 +516,6 @@ HTML_CODE = r"""
         let loadedMovies = {}; 
         let currentPage = 1; 
         let searchQuery = "";
-        let activeCategory = "";
         let autoScrollInterval;
         let activeAds = [];
         
@@ -652,10 +644,6 @@ HTML_CODE = r"""
             setNavActive(0);
             document.getElementById('searchInput').value = ""; 
             searchQuery = ""; 
-            activeCategory = "";
-            document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
-            let firstCatBtn = document.querySelector('.cat-btn');
-            if(firstCatBtn) firstCatBtn.classList.add('active');
             
             document.getElementById('trendingWrapper').style.display = 'block';
             loadTrending();
@@ -724,6 +712,9 @@ HTML_CODE = r"""
                             files: m.files,
                             clicks: m.clicks || 0
                         };
+                        
+                        let totalParts = m.files.length;
+                        let partText = totalParts === 1 ? 'Part' : 'Parts';
                         
                         html += `
                         <div class="card" onclick="openQualityModal(this)" data-title="${encodeURIComponent(m.title)}">
@@ -961,7 +952,7 @@ HTML_CODE = r"""
                 const d = await res.json();
                 let html = '';
                 d.requests.forEach(req => {
-                    let statusText = req.status === 'pending' ? '⏳ Pending Review' : req.status === 'processing' ? '⚙️ Processing Movie' : '✅ Uploaded successfully!';
+                    let statusText = req.status === 'pending' ? '⏳ Pending Review' : req.status === 'processing' ? '⚙️ Processing Video' : '✅ Uploaded successfully!';
                     let pct = req.status === 'pending' ? 30 : req.status === 'processing' ? 70 : 100;
                     let barColor = req.status === 'pending' ? '#f59e0b' : req.status === 'processing' ? '#3b82f6' : '#10b981';
                     
@@ -976,7 +967,7 @@ HTML_CODE = r"""
                         </div>
                     </div>`;
                 });
-                document.getElementById('requestsTrackerList').innerHTML = html || '<p style="color: #64748b; text-align:center;">You have not made any movie requests yet.</p>';
+                document.getElementById('requestsTrackerList').innerHTML = html || '<p style="color: #64748b; text-align:center;">You have not made any video requests yet.</p>';
             } catch(e) {}
         }
 
@@ -1030,27 +1021,6 @@ HTML_CODE = r"""
         function formatViews(n) { if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M'; if (n >= 1000) return (n / 1000).toFixed(1) + 'K'; return n; }
         function makeSafeId(str) { return str.replace(/[^a-zA-Z0-9]/g, '_'); }
 
-        async function loadCategories() {
-            try {
-                const res = await fetch('/api/categories');
-                const cats = await res.json();
-                if(cats.length === 0) return;
-                let html = `<button class="cat-btn active" onclick="setCategory('', this)">All</button>`;
-                cats.forEach(c => { html += `<button class="cat-btn" onclick="setCategory('${c.replace(/'/g, "\\'")}', this)">${c}</button>`; });
-                document.getElementById('categoryBox').innerHTML = html;
-            } catch(e) {}
-        }
-
-        function setCategory(cat, btnElement) {
-            activeCategory = cat;
-            document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
-            btnElement.classList.add('active');
-            searchQuery = ""; 
-            document.getElementById('searchInput').value = "";
-            document.getElementById('trendingWrapper').style.display = cat === "" ? 'block' : 'none';
-            loadMovies(1);
-        }
-
         function startAutoScroll() {
             if(autoScrollInterval) clearInterval(autoScrollInterval);
             autoScrollInterval = setInterval(() => {
@@ -1070,11 +1040,14 @@ HTML_CODE = r"""
                 if(data.length === 0) return document.getElementById('trendingWrapper').style.display = 'none';
                 grid.innerHTML = data.map(m => {
                     loadedMovies[m._id] = m;
+                    let totalParts = m.files.length;
+                    let partText = totalParts === 1 ? 'Part' : 'Parts';
+                    
                     return `<div class="trending-card" onclick="openQualityModal(this)" data-title="${encodeURIComponent(m._id)}">
                         <div class="post-content">
                             <div class="top-badge">🔥 TOP</div>
                             <img src="/api/image/${m.photo_id}" loading="lazy" onerror="this.src='https://via.placeholder.com/640x360?text=No+Image'">
-                            <div class="ep-badge"><i class="fa-solid fa-list"></i> ${m.files.length}</div>
+                            <div class="ep-badge"><i class="fa-solid fa-list"></i> ${totalParts} ${partText}</div>
                             <div class="view-badge" id="trend-view-${makeSafeId(m._id)}"><i class="fa-solid fa-eye"></i> ${formatViews(m.clicks)}</div>
                         </div>
                         <div class="card-footer">
@@ -1092,18 +1065,21 @@ HTML_CODE = r"""
             const grid = document.getElementById('movieGrid');
             grid.innerHTML = "<p style='color:white; text-align:center;'>Loading...</p>";
             try {
-                const r = await fetch(`/api/list?page=${currentPage}&q=${encodeURIComponent(searchQuery)}&uid=${uid}&cat=${encodeURIComponent(activeCategory)}`);
+                const r = await fetch(`/api/list?page=${currentPage}&q=${encodeURIComponent(searchQuery)}&uid=${uid}`);
                 const data = await r.json();
-                if(data.movies.length === 0) return grid.innerHTML = `<p style='text-align:center; color:#fbbf24;'>No movies found!</p>`;
+                if(data.movies.length === 0) return grid.innerHTML = `<p style='text-align:center; color:#fbbf24;'>No videos found!</p>`;
                 
                 let htmlContent = "";
                 
                 data.movies.forEach((m, index) => {
                     loadedMovies[m._id] = m; 
+                    let totalParts = m.files.length;
+                    let partText = totalParts === 1 ? 'Part' : 'Parts';
+                    
                     let cardHtml = `<div class="card" onclick="openQualityModal(this)" data-title="${encodeURIComponent(m._id)}">
                         <div class="post-content">
                             <img src="/api/image/${m.photo_id}" loading="lazy" onerror="this.src='https://via.placeholder.com/640x360?text=No+Image'">
-                            <div class="ep-badge"><i class="fa-solid fa-list"></i> ${m.files.length}</div>
+                            <div class="ep-badge"><i class="fa-solid fa-list"></i> ${totalParts} ${partText}</div>
                             <div class="view-badge" id="list-view-${makeSafeId(m._id)}"><i class="fa-solid fa-eye"></i> ${formatViews(m.clicks)}</div>
                         </div>
                         <div class="card-footer">
@@ -1144,7 +1120,6 @@ HTML_CODE = r"""
             searchQuery = e.target.value.trim();
             
             const elementsToToggle = [
-                document.getElementById('categoryBox'),
                 document.getElementById('trendingWrapper'),
                 document.getElementById('recentTitle'),
                 document.getElementById('communityBox'),
@@ -1153,11 +1128,8 @@ HTML_CODE = r"""
 
             if(searchQuery !== "") { 
                 elementsToToggle.forEach(el => { if(el) el.style.display = 'none'; });
-                activeCategory = ""; 
-                document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active')); 
             } 
             else { 
-                if(document.getElementById('categoryBox')) document.getElementById('categoryBox').style.display = 'flex';
                 if(document.getElementById('trendingWrapper')) document.getElementById('trendingWrapper').style.display = 'block';
                 if(document.getElementById('recentTitle')) document.getElementById('recentTitle').style.display = 'flex';
                 if(document.getElementById('communityBox')) document.getElementById('communityBox').style.display = 'block';
@@ -1171,7 +1143,7 @@ HTML_CODE = r"""
             let title = decodeURIComponent(element.getAttribute('data-title'));
             const movie = loadedMovies[title];
             if (!movie) {
-                console.error("Movie not found in loadedMovies:", title);
+                console.error("Video not found in loadedMovies:", title);
                 return;
             }
             
@@ -1439,7 +1411,7 @@ HTML_CODE = r"""
             if(SOCIAL_LINKS.fb_group) html += `<a href="${SOCIAL_LINKS.fb_group}" target="_blank" class="social-btn fb-btn"><i class="fa-brands fa-facebook"></i> FB Group</a>`;
             if(SOCIAL_LINKS.fb_page) html += `<a href="${SOCIAL_LINKS.fb_page}" target="_blank" class="social-btn fb-btn"><i class="fa-brands fa-facebook-f"></i> FB Page</a>`;
             if(SOCIAL_LINKS.youtube) html += `<a href="${SOCIAL_LINKS.youtube}" target="_blank" class="social-btn yt-btn"><i class="fa-brands fa-youtube"></i> YouTube</a>`;
-            if(SOCIAL_LINKS.review_channel) html += `<a href="${SOCIAL_LINKS.review_channel}" target="_blank" class="social-btn tg-btn"><i class="fa-solid fa-film"></i> Movie Review</a>`;
+            if(SOCIAL_LINKS.review_channel) html += `<a href="${SOCIAL_LINKS.review_channel}" target="_blank" class="social-btn tg-btn"><i class="fa-solid fa-film"></i> Video Reviews</a>`;
             
             if(html !== '') {
                 document.getElementById('communityBox').innerHTML = `
@@ -1554,7 +1526,6 @@ HTML_CODE = r"""
                 await Promise.all([
                     fetchUserInfo(),
                     fetchActiveAds(),
-                    loadCategories(),
                     loadTrending(),
                     loadMovies(1)
                 ]);
