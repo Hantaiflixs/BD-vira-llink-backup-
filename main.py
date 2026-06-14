@@ -35,14 +35,6 @@ try:
 except ImportError as e:
     logger.warning(f"Gateway module setup bypassed. Error: {e}")
 
-# আপকামিং রাউটারটি নিরাপদ উপায়ে রেজিস্টার করা হলো
-try:
-    from upcoming_router import upcoming_router
-    app.include_router(upcoming_router)
-    logger.info("Upcoming router registered successfully.")
-except ImportError:
-    logger.warning("upcoming_router.py not found. Bypassing upcoming_router setup.")
-
 # কাস্টম ইউভিকর্ন সার্ভার যা সিগন্যাল হাইজ্যাক হওয়া প্রতিরোধ করে
 class CustomUvicornServer(uvicorn.Server):
     def install_signal_handlers(self) -> None:
@@ -102,7 +94,7 @@ async def start():
     except Exception as e:
         logger.error(f"Pyrogram start-up bypassed or errored: {e}. Media functions may use fallback tasks.")
         
-    # バックグラウンドব্যাকগ্রাউন্ড টাস্কসমূহ চালু করা হচ্ছে
+    # ব্যাকগ্রাউন্ড টাস্কসমূহ চালু করা হচ্ছে
     asyncio.create_task(auto_delete_worker())
     asyncio.create_task(video_queue_worker()) 
     
