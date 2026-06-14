@@ -37,11 +37,10 @@ class AdminStates(StatesGroup):
     waiting_for_photo = State()
     waiting_for_title = State()
     waiting_for_quality = State() 
-    waiting_for_category = State()
-    waiting_for_series_search = State()
-    waiting_for_episode_quality = State()
+    waiting_for_video_search = State()
+    waiting_for_part_quality = State()
     
-    waiting_for_bulk_series_search = State()
+    waiting_for_bulk_video_search = State()
     waiting_for_bulk_start_num = State()
     waiting_for_bulk_quality = State()
     waiting_for_bulk_files = State()
@@ -58,7 +57,7 @@ async def post_to_channel_and_clean_old(title: str, photo_id: str, caption: str,
     if not CHANNEL_ID:
         return None
     
-    # ১. ডাটাবেসে এই মুভি বা সিরিজের আগের কোনো একটিভ চ্যানেল পোস্ট আইডি আছে কি না দেখব
+    # ১. ডাটাবেসে এই ভিডিওর আগের কোনো একটিভ চ্যানেল পোস্ট আইডি আছে কি না দেখব
     old_movie = await db.movies.find_one({"title": title, "channel_msg_id": {"$exists": True, "$ne": None}})
     if old_movie and old_movie.get("channel_msg_id"):
         try:
@@ -77,7 +76,7 @@ async def post_to_channel_and_clean_old(title: str, photo_id: str, caption: str,
             reply_markup=markup
         )
         
-        # ৩. নতুন পোস্টের মেসেজ আইডিটি ডাটাবেসের এই মুভি/সিরিজের সবকটি আইটেমে আপডেট করে দেওয়া হলো!
+        # ৩. নতুন পোস্টের মেসেজ আইডিটি ডাটাবেসের এই ভিডিওর সবকটি আইটেমে আপডেট করে দেওয়া হলো!
         await db.movies.update_many(
             {"title": title},
             {"$set": {"channel_msg_id": sent_msg.message_id}}
@@ -130,7 +129,7 @@ async def start_cmd(message: types.Message, state: FSMContext):
     kb = [
         [types.InlineKeyboardButton(text="🎬 WATCH NOW 🎬", web_app=types.WebAppInfo(url=APP_URL))],
         [types.InlineKeyboardButton(text="📖 HOW TO DOWNLOAD", url=TUTORIAL_LINK)],
-        [types.InlineKeyboardButton(text="♻️ REQUEST MOVIE", url=REQUEST_LINK)],
+        [types.InlineKeyboardButton(text="♻️ REQUEST VIDEO", url=REQUEST_LINK)],
         [types.InlineKeyboardButton(text="🎁 REFER & EARN", callback_data="refer_info_start")]
     ]
     markup = types.InlineKeyboardMarkup(inline_keyboard=kb)
@@ -151,11 +150,11 @@ async def start_cmd(message: types.Message, state: FSMContext):
             "🔸 Protection: <code>/protect on/off</code> | <code>/settime [minutes]</code>\n"
             "🔸 Ad Settings: <code>/setadtime [seconds]</code>\n" 
             "🔸 Stats & Broadcast: <code>/stats</code> | <code>/cast</code>\n"
-            "🔸 Delete Movie: <code>/delmovie title</code> | <code>/delallmovies</code>\n"
+            "🔸 Delete Video: <code>/delmovie title</code> | <code>/delallmovies</code>\n"
             "🔸 User Controls: <code>/ban ID</code> | <code>/unban ID</code>\n"
             "🔸 Points & VIP: <code>/addcoin ID amount</code> | <code>/addvip ID days</code>\n\n"
             f"🌐 <b>Web Admin Panel:</b> <a href='{APP_URL}/admin'>Open Dashboard</a>\n\n"
-            "📥 <i>To upload a movie, simply send/forward any video or document here.</i>"
+            "📥 <i>To upload a video, simply send/forward any video or document here.</i>"
         )
         try:
             await message.answer_photo(photo=WELCOME_BANNER, caption=text, reply_markup=markup, parse_mode="HTML")
@@ -166,7 +165,7 @@ async def start_cmd(message: types.Message, state: FSMContext):
         user_name = message.from_user.first_name or "User"
         text = (
             f"👋 <b>Welcome, {user_name}!</b>\n"
-            f"Welcome to MovieZone BD - Cinema in your pocket.\n\n"
+            f"Welcome to MovieZone BD - Viral videos in your pocket.\n\n"
             f"📊 <b>YOUR PROFILE STATS:</b>\n"
             f"━━━━━━━━━━━━━━━━━━\n"
             f"👤 <b>Account:</b> {user_name}\n"
@@ -174,7 +173,7 @@ async def start_cmd(message: types.Message, state: FSMContext):
             f"💎 <b>My Gems:</b> <code>{coins} Gems</code>\n"
             f"👑 <b>Membership:</b> <b>{vip_status}</b>\n"
             f"━━━━━━━━━━━━━━━━━━\n\n"
-            f"🍿 <i>Click the <b>'WATCH NOW'</b> button below to open the mini-app and download or stream movies instantly!</i>"
+            f"🍿 <i>Click the <b>'WATCH NOW'</b> button below to open the mini-app and stream videos instantly!</i>"
         )
         try:
             await message.answer_photo(photo=WELCOME_BANNER, caption=text, reply_markup=markup, parse_mode="HTML")
@@ -215,11 +214,11 @@ async def admin_maya_chat(m: types.Message):
 async def admin_caption_gen(m: types.Message):
     prompt = m.text.split(" ", 1)
     if len(prompt) < 2:
-        return await m.answer("⚠️ <b>Please specify a movie name!</b>\nUsage: <code>/caption Puspa 2</code>", parse_mode="HTML")
+        return await m.answer("⚠️ <b>Please specify a video name!</b>\nUsage: <code>/caption Viral Fun Video</code>", parse_mode="HTML")
     
     status_msg = await m.answer("⏳ <i>Generating poster caption...</i>", parse_mode="HTML")
     try:
-        ai_prompt = f"Write an extremely attractive, professional, and dramatic Telegram channel post caption in Bangladeshi Bengali with lots of emojis for the movie: '{prompt[1]}'. Emphasize that it's now available on our Mini-App."
+        ai_prompt = f"Write an extremely attractive, professional, and dramatic Telegram channel post caption in Bangladeshi Bengali with lots of emojis for the viral video: '{prompt[1]}'. Emphasize that it's now available on our Mini-App."
         reply = await get_smart_reply(ai_prompt, m.from_user.first_name, db, user_id=m.from_user.id, save_history=False)
         await bot.delete_message(m.chat.id, status_msg.message_id)
         await m.reply(reply, parse_mode="HTML")
@@ -228,9 +227,9 @@ async def admin_caption_gen(m: types.Message):
 
 @dp.message(Command("movienews"), lambda m: m.from_user.id in admin_cache)
 async def admin_movienews_gen(m: types.Message):
-    status_msg = await m.answer("⏳ <i>Fetching hot movie news & gossip...</i>", parse_mode="HTML")
+    status_msg = await m.answer("⏳ <i>Fetching hot video news & gossip...</i>", parse_mode="HTML")
     try:
-        ai_prompt = "Write an extremely interesting, trending movie news or gossip in Bangladeshi Bengali with emojis for a Telegram channel. Make it read like a hot gossip magazine post!"
+        ai_prompt = "Write an extremely interesting, trending social media viral video news or gossip in Bangladeshi Bengali with emojis for a Telegram channel. Make it read like a hot viral trend post!"
         reply = await get_smart_reply(ai_prompt, m.from_user.first_name, db, user_id=m.from_user.id, save_history=False)
         await bot.delete_message(m.chat.id, status_msg.message_id)
         await m.reply(reply, parse_mode="HTML")
@@ -257,14 +256,14 @@ async def admin_greeting_gen(m: types.Message):
 async def admin_broadcast_copy_gen(m: types.Message):
     latest_cursor = db.movies.find({}, {"title": 1}).sort("created_at", -1).limit(3)
     latest_movies = await latest_cursor.to_list(length=3)
-    movie_list_str = ", ".join([mv["title"] for mv in latest_movies]) if latest_movies else "No recent movies"
+    movie_list_str = ", ".join([mv["title"] for mv in latest_movies]) if latest_movies else "No recent videos"
     
     status_msg = await m.answer("⏳ <i>Drafting high-converting broadcast notification...</i>", parse_mode="HTML")
     try:
         ai_prompt = (
             f"Draft an extremely engaging, emotional, and persuasive Telegram broadcast message/newsletter in Bangladeshi Bengali with stylish emojis. "
-            f"The goal is to invite users to watch our latest blockbuster releases. The latest movies added are: '{movie_list_str}'. "
-            f"Tell them they can watch/download these in 1-click in our Mini-App by clicking the button below."
+            f"The goal is to invite users to watch our latest trending viral releases. The latest videos added are: '{movie_list_str}'. "
+            f"Tell them they can watch these in 1-click in our Mini-App by clicking the button below."
         )
         reply = await get_smart_reply(ai_prompt, m.from_user.first_name, db, user_id=m.from_user.id, save_history=False)
         await bot.delete_message(m.chat.id, status_msg.message_id)
@@ -282,8 +281,8 @@ async def admin_dmca_analyzer(m: types.Message):
     try:
         ai_prompt = (
             f"Analyze this raw copyright/DMCA claim/complaint text. "
-            f"Extract the movie/series name being reported. Then, write a warning report in Bangladeshi Bengali to the admin advising them. "
-            f"If a movie is found, write the exact command they can run to delete it, like: `/delmovie [Movie Name]`. "
+            f"Extract the video name being reported. Then, write a warning report in Bangladeshi Bengali to the admin advising them. "
+            f"If a video is found, write the exact command they can run to delete it, like: `/delmovie [Video Name]`. "
             f"Here is the DMCA text:\n\n{prompt[1]}"
         )
         reply = await get_smart_reply(ai_prompt, m.from_user.first_name, db, user_id=m.from_user.id, save_history=False)
@@ -295,7 +294,7 @@ async def admin_dmca_analyzer(m: types.Message):
 @dp.message(Command("retarget"), lambda m: m.from_user.id in admin_cache)
 async def admin_retarget_copy_gen(m: types.Message):
     prompt = m.text.split(" ", 1)
-    target = prompt[1] if len(prompt) > 1 else "Action blockbusters"
+    target = prompt[1] if len(prompt) > 1 else "Trending viral videos"
     status_msg = await m.answer(f"⏳ <i>Drafting personalized retargeting campaign for '{target}'...</i>", parse_mode="HTML")
     try:
         ai_prompt = (
@@ -443,15 +442,15 @@ async def del_movie_cmd(m: types.Message):
         if result.deleted_count > 0:
             clear_app_cache() 
             await m.answer(f"✅ '<b>{title}</b>' নামের {result.deleted_count} টি ফাইল ডিলিট হয়েছে!", parse_mode="HTML")
-        else: await m.answer("⚠️ এই নামের কোনো মুভি পাওয়া যায়নি।")
-    except Exception: await m.answer("⚠️ সঠিক নিয়ম: <code>/delmovie মুভির নাম</code>", parse_mode="HTML")
+        else: await m.answer("⚠️ এই নামের কোনো ভিডিও পাওয়া যায়নি।")
+    except Exception: await m.answer("⚠️ সঠিক নিয়ম: <code>/delmovie ভিডিওর নাম</code>", parse_mode="HTML")
 
 @dp.message(Command("delallmovies"))
 async def del_all_movies_cmd(m: types.Message):
     if m.from_user.id not in admin_cache: return
     result = await db.movies.delete_many({})
     clear_app_cache()
-    await m.answer(f"🗑 <b>সতর্কতা:</b> ডাটাবেস থেকে সর্বমোট <b>{result.deleted_count}</b> টি মুভি ডিলিট করা হয়েছে!", parse_mode="HTML")
+    await m.answer(f"🗑 <b>সতর্কতা:</b> ডাটাবেস থেকে সর্বমোট <b>{result.deleted_count}</b> টি ভিডিও ডিলিট করা হয়েছে!", parse_mode="HTML")
 
 @dp.message(Command("stats"))
 async def stats_cmd(m: types.Message):
@@ -649,12 +648,12 @@ async def execute_broadcast(m: types.Message, state: FSMContext):
     # অ্যাডমিনের কাছে প্রাথমিক স্ট্যাটাস মেসেজ পাঠানো হলো
     status_msg = await m.answer("⏳ <b>Broadcasting initialized... Preparing parallel workers.</b>", parse_mode="HTML")
     
-    kb = [[types.InlineKeyboardButton(text="🎬 ওপেন মুভি অ্যাপ", web_app=types.WebAppInfo(url=APP_URL))]]
+    kb = [[types.InlineKeyboardButton(text="🎬 ওপেন ভিডিও অ্যাপ", web_app=types.WebAppInfo(url=APP_URL))]]
     markup = types.InlineKeyboardMarkup(inline_keyboard=kb)
     
     progress_tracker = {"success": 0, "failed": 0, "total_checked": 0}
     
-    # ব্যাকগ্রাউন্ড আপডেট রিপোর্টার টাস্ক চালু করা হলো
+    # バックグラウンドアップデートポータータスク
     update_task = asyncio.create_task(
         broadcast_status_updater(status_msg, total_users, progress_tracker, m.chat.id)
     )
@@ -708,7 +707,7 @@ async def add_keyword_reply(m: types.Message):
         await load_keyword_replies()
         await m.answer(f"✅ <b>{keyword}</b> এর জন্য ম্যানুয়াল রিপ্লাই সেট হয়েছে!", parse_mode="HTML")
     except Exception:
-        await m.answer("⚠️ সঠিক নিয়ম: <code>/addreply কিওয়ার্ড | আপনার রিপ্লাই</code>\n(যেমন: <code>/addreply pushpa 2 | মুভিটি এখনো রিলিজ হয়নি।</code>)", parse_mode="HTML")
+        await m.answer("⚠️ সঠিক নিয়ম: <code>/addreply কিওয়ার্ড | আপনার রিপ্লাই</code>\n(যেমন: <code>/addreply viral 1 | ভিডিওর ২য় পার্ট জলদি আসবে।</code>)", parse_mode="HTML")
 
 @dp.message(Command("delreply"))
 async def del_keyword_reply(m: types.Message):
@@ -780,7 +779,7 @@ async def forward_to_admin(m: types.Message):
         if m.from_user.id not in auto_reply_cache:
             auto_reply_cache[m.from_user.id] = True
             try:
-                kb = [[types.InlineKeyboardButton(text="🎬 Watch Now (মুভি দেখুন)", web_app=types.WebAppInfo(url=APP_URL))]]
+                kb = [[types.InlineKeyboardButton(text="🎬 Watch Now (ভিডিও দেখুন)", web_app=types.WebAppInfo(url=APP_URL))]]
                 user_markup = types.InlineKeyboardMarkup(inline_keyboard=kb)
                 
                 if user_text:
@@ -797,7 +796,7 @@ async def forward_to_admin(m: types.Message):
         if m.from_user.id not in auto_reply_cache:
             auto_reply_cache[m.from_user.id] = True
             try:
-                kb = [[types.InlineKeyboardButton(text="🎬 Watch Now (মুভি দেখুন)", web_app=types.WebAppInfo(url=APP_URL))]]
+                kb = [[types.InlineKeyboardButton(text="🎬 Watch Now (ভিডিও দেখুন)", web_app=types.WebAppInfo(url=APP_URL))]]
                 user_markup = types.InlineKeyboardMarkup(inline_keyboard=kb)
                 await m.reply(reply_text, reply_markup=user_markup, parse_mode="HTML")
                 
@@ -901,7 +900,7 @@ async def group_request_responder(m: types.Message):
         escaped_name = html.escape(m.from_user.first_name or "User")
         text = (
             f"🍿 <b>Hey {escaped_name}!</b>\n\n"
-            f"আপনি যে মুভিটি খুঁজছেন—'<b>{found_movie['title']}</b>' "
+            f"আপনি যে ভিডিওটি খুঁজছেন—'<b>{found_movie['title']}</b>' "
             f"সেটি আমাদের মিনি-অ্যাপে অলরেডি আপলোড করা আছে! 😍\n\n"
             f"👇 নিচের বাটনে ক্লিক করে সরাসরি আমাদের বটে গিয়ে দেখে নিন বা ডাউনলোড করুন।"
         )
@@ -919,10 +918,10 @@ async def group_request_responder(m: types.Message):
         status_msg = await m.reply("⏳ <i>Maya is checking...</i>", parse_mode="HTML")
         try:
             ai_prompt = (
-                f"The user '{m.from_user.first_name}' is asking for a movie in our request group. "
-                f"We searched our database, and the movie is NOT available. "
+                f"The user '{m.from_user.first_name}' is asking for a video in our request group. "
+                f"We searched our database, and the video is NOT available. "
                 f"Write a very polite, sweet, and comforting reply in Bangladeshi Bengali. "
-                f"Explain that we don't have this movie yet, "
+                f"Explain that we don't have this video yet, "
                 f"and tell them they can request it in our bot or wait, and we will upload it soon! "
                 f"Keep the reply short, friendly, and helpful. User's query: '{user_text}'"
             )
@@ -935,7 +934,7 @@ async def group_request_responder(m: types.Message):
             except: pass
 
 # ==========================================
-# 🛑 MOVIE & EPISODE MANUAL UPLOAD LOGIC
+# 🛑 VIDEO & PART MANUAL UPLOAD LOGIC
 # ==========================================
 @dp.message(StateFilter(None), F.content_type.in_({'video', 'document'}), lambda m: m.from_user.id in admin_cache)
 async def receive_movie_file(m: types.Message, state: FSMContext):
@@ -961,71 +960,75 @@ async def receive_movie_file(m: types.Message, state: FSMContext):
         await state.update_data(file_id=fid, file_type=ftype, db_file_id=db_file_id)
         
         kb = [
-            [types.InlineKeyboardButton(text="🎬 নতুন মুভি/সিরিজ যুক্ত করুন", callback_data="upload_new")],
-            [types.InlineKeyboardButton(text="➕ আগের সিরিজের নতুন এপিসোড", callback_data="upload_episode")]
+            [types.InlineKeyboardButton(text="🎬 নতুন ভিডিও যুক্ত করুন (Video)", callback_data="upload_new")],
+            [types.InlineKeyboardButton(text="➕ আগের ভিডিওর নতুন পার্ট (Part)", callback_data="upload_part")]
         ]
         markup = types.InlineKeyboardMarkup(inline_keyboard=kb)
-        await m.answer("✅ ফাইল পেয়েছি! এটি কি নতুন কোনো মুভি নাকি আগের কোনো সিরিজের নতুন এপিসোড?", reply_markup=markup)
+        await m.answer("✅ ফাইল পেয়েছি! এটি কি নতুন কোনো ভিডিও নাকি আগের কোনো ভিডিওর নতুন পার্ট?", reply_markup=markup)
 
 @dp.callback_query(F.data == "upload_new")
 async def upload_new_cb(c: types.CallbackQuery, state: FSMContext):
     await state.set_state(AdminStates.waiting_for_photo)
-    await c.message.edit_text("✅ <b>নতুন মুভি/সিরিজ!</b>\nএবার মুভির <b>পোস্টার (Photo)</b> সেন্ড করুন।", parse_mode="HTML")
+    await c.message.edit_text("✅ <b>নতুন ভিডিও!</b>\nএবার ভিডিওর <b>পোস্টার (Photo)</b> সেন্ড করুন।", parse_mode="HTML")
 
-@dp.callback_query(F.data == "upload_episode")
-async def upload_episode_cb(c: types.CallbackQuery, state: FSMContext):
-    await state.set_state(AdminStates.waiting_for_series_search)
-    await c.message.edit_text("✅ <b>নতুন এপিসোড!</b>\n\nযে সিরিজে এড করতে চান, সেই <b>সিরিজের নামের কয়েক অক্ষর</b> লিখে রিপ্লাই দিন (যেমন: Farzi)।", parse_mode="HTML")
+@dp.callback_query(F.data == "upload_part")
+async def upload_part_cb(c: types.CallbackQuery, state: FSMContext):
+    await state.set_state(AdminStates.waiting_for_video_search)
+    await c.message.edit_text("✅ <b>নতুন পার্ট!</b>\n\nযে ভিডিওতে পার্টটি অ্যাড করতে চান, সেই <b>ভিডিওর নামের কয়েক অক্ষর</b> লিখে সার্চ করুন (যেমন: Fun Clip)।", parse_mode="HTML")
 
-@dp.message(AdminStates.waiting_for_series_search, F.text)
+@dp.message(AdminStates.waiting_for_video_search, F.text)
 async def search_series_for_episode(m: types.Message, state: FSMContext):
     query = m.text.strip()
     pipeline = [
         {"$match": {"title": {"$regex": query, "$options": "i"}}},
-        {"$group": {"_id": "$title", "photo_id": {"$first": "$photo_id"}, "db_photo_id": {"$first": "$db_photo_id"}, "categories": {"$first": "$categories"}}},
+        {"$group": {"_id": "$title", "photo_id": {"$first": "$photo_id"}, "db_photo_id": {"$first": "$db_photo_id"}}},
         {"$limit": 10}
     ]
     results = await db.movies.aggregate(pipeline).to_list(10)
 
-    if not results: return await m.answer("⚠️ এই নামে কোনো সিরিজ পাওয়া যায়নি! আবার সঠিক নাম লিখে পাঠান।")
+    if not results: return await m.answer("⚠️ এই নামে কোনো ভিডিও পাওয়া যায়নি! আবার সঠিক নাম লিখে পাঠান।")
 
     await state.update_data(search_results=results)
     
     builder = InlineKeyboardBuilder()
-    for idx, res in enumerate(results): builder.button(text=f"📺 {res['_id']}", callback_data=f"sel_series_{idx}")
+    for idx, res in enumerate(results): builder.button(text=f"📺 {res['_id']}", callback_data=f"sel_video_{idx}")
     builder.adjust(1)
     
-    await m.answer("👇 নিচে থেকে আপনার কাঙ্ক্ষিত সিরিজটি সিলেক্ট করুন:", reply_markup=builder.as_markup())
+    await m.answer("👇 নিচে থেকে আপনার কাঙ্ক্ষিত ভিডিওটি সিলেক্ট করুন:", reply_markup=builder.as_markup())
 
-@dp.callback_query(F.data.startswith("sel_series_"))
+@dp.callback_query(F.data.startswith("sel_video_"))
 async def selected_series_cb(c: types.CallbackQuery, state: FSMContext):
     idx = int(c.data.split("_")[2])
     data = await state.get_data()
     selected = data["search_results"][idx]
 
-    await state.update_data(title=selected["_id"], photo_id=selected["photo_id"], db_photo_id=selected.get("db_photo_id"), categories=selected.get("categories", []))
+    await state.update_data(title=selected["_id"], photo_id=selected["photo_id"], db_photo_id=selected.get("db_photo_id"))
     
-    await state.set_state(AdminStates.waiting_for_episode_quality)
-    await c.message.edit_text(f"✅ <b>{selected['_id']}</b> সিলেক্ট হয়েছে!\n\nএবার এই নতুন ফাইলের <b>এপিসোড নাম্বার বা কোয়ালিটি</b> লিখে পাঠান।", parse_mode="HTML")
+    await state.set_state(AdminStates.waiting_for_part_quality)
+    await c.message.edit_text(f"✅ <b>{selected['_id']}</b> সিলেক্ট হয়েছে!\n\nএবার এই নতুন পার্টের <b>কোয়ালিটি বা বিবরণ</b> লিখে পাঠান (যেমন: HD বা 1080p)।", parse_mode="HTML")
 
-@dp.message(AdminStates.waiting_for_episode_quality, F.text)
+@dp.message(AdminStates.waiting_for_part_quality, F.text)
 async def finalize_new_episode(m: types.Message, state: FSMContext):
     quality = m.text.strip()
     data = await state.get_data()
     title = data["title"]
     photo_id = data["photo_id"]
-    categories = data.get("categories", [])
+    
+    # স্বয়ংক্রিয় পরবর্তী পার্ট নাম্বার নির্ধারণ
+    part_count = await db.movies.count_documents({"title": title})
+    next_part = part_count + 1
+    quality_str = f"Video Part {next_part} [{quality}]"
     
     await db.movies.insert_one({
-        "title": title, "quality": quality, "photo_id": photo_id, 
+        "title": title, "quality": quality_str, "photo_id": photo_id, 
         "file_id": data["file_id"], "file_type": data["file_type"],
         "db_file_id": data.get("db_file_id"), "db_photo_id": data.get("db_photo_id"),
-        "categories": categories, "clicks": 0, "created_at": datetime.datetime.utcnow()
+        "clicks": 0, "created_at": datetime.datetime.utcnow()
     })
     clear_app_cache() 
     
     await state.clear()
-    await m.reply(f"🎉 <b>{title} [{quality}]</b> সফলভাবে সিরিজে এড করা সম্পূর্ণ হয়েছে!", parse_mode="HTML")
+    await m.reply(f"🎉 <b>{title} [{quality_str}]</b> সফলভাবে যুক্ত করা সম্পূর্ণ হয়েছে!", parse_mode="HTML")
 
     if CHANNEL_ID:
         try:
@@ -1033,45 +1036,44 @@ async def finalize_new_episode(m: types.Message, state: FSMContext):
             kb = [
                 [types.InlineKeyboardButton(text="📥 Download & Watch 🎬", url=f"https://t.me/{bot_info.username}?start=new")],
                 [types.InlineKeyboardButton(text="কিভাবে ডাউনলোড করবেন ❓", url=TUTORIAL_LINK)],
-                [types.InlineKeyboardButton(text="♻️ MOVIE REQUEST ♻️", url=REQUEST_LINK)]
+                [types.InlineKeyboardButton(text="♻️ REQUEST VIDEO ♻️", url=REQUEST_LINK)]
             ]
             markup = types.InlineKeyboardMarkup(inline_keyboard=kb)
-            cat_display = ", ".join(categories) if categories else "N/A"
-            caption = (f"🔥 <b>নতুন এপিসোড যুক্ত হয়েছে!</b>\n\n📌 <b>টাইটেল:</b> {title}\n🏷 <b>কোয়ালিটি:</b> {quality}\n🎭 <b>ক্যাটাগরি:</b> {cat_display}\n\n👇 <i>বট থেকে...</i>")
+            caption = (f"🔥 <b>নতুন ভিডিও পার্ট যুক্ত হয়েছে!</b>\n\n📌 <b>টাইটেল:</b> {title}\n🏷 <b>পার্ট:</b> {quality_str}\n\n👇 <i>বট থেকে...</i>")
             await bot.send_photo(chat_id=CHANNEL_ID, photo=photo_id, caption=caption, parse_mode="HTML", reply_markup=markup)
         except Exception: pass
 
 # ==========================================
-# 🛑 BULK UPLOAD MODULE FOR WEB SERIES
+# 🛑 BULK UPLOAD MODULE FOR VIDEO PARTS
 # ==========================================
 @dp.message(Command("bulk"), lambda m: m.from_user.id in admin_cache)
 async def init_bulk_upload_cmd(m: types.Message, state: FSMContext):
-    await state.set_state(AdminStates.waiting_for_bulk_series_search)
-    await m.answer("📦 <b>Bulk এপিসোড আপলোড!</b>\n\nযে ওয়েব সিরিজে এপিসোডগুলো যোগ করতে চান, সেই সিরিজের নামের কয়েকটি অক্ষর লিখে সার্চ করুন (যেমন: Farzi)।", parse_mode="HTML")
+    await state.set_state(AdminStates.waiting_for_bulk_video_search)
+    await m.answer("📦 <b>Bulk ভিডিও পার্ট আপলোড!</b>\n\nযে ভিডিওতে পার্টগুলো যোগ করতে চান, সেই ভিডিওর নামের কয়েকটি অক্ষর লিখে সার্চ করুন (যেমন: Fun Clip)।", parse_mode="HTML")
 
-@dp.message(AdminStates.waiting_for_bulk_series_search, F.text)
+@dp.message(AdminStates.waiting_for_bulk_video_search, F.text)
 async def search_series_for_bulk(m: types.Message, state: FSMContext):
     query = m.text.strip()
     pipeline = [
         {"$match": {"title": {"$regex": query, "$options": "i"}}},
-        {"$group": {"_id": "$title", "photo_id": {"$first": "$photo_id"}, "db_photo_id": {"$first": "$db_photo_id"}, "categories": {"$first": "$categories"}}},
+        {"$group": {"_id": "$title", "photo_id": {"$first": "$photo_id"}, "db_photo_id": {"$first": "$db_photo_id"}}},
         {"$limit": 10}
     ]
     results = await db.movies.aggregate(pipeline).to_list(10)
 
     if not results: 
-        return await m.answer("⚠️ এই নামে কোনো সিরিজ পাওয়া যায়নি! আবার সঠিক নাম লিখে পাঠান।")
+        return await m.answer("⚠️ এই নামে কোনো ভিডিও পাওয়া যায়নি! আবার সঠিক নাম লিখে পাঠান।")
 
     await state.update_data(search_results=results)
     
     builder = InlineKeyboardBuilder()
     for idx, res in enumerate(results): 
-        builder.button(text=f"📺 {res['_id']}", callback_data=f"sel_bulk_series_{idx}")
+        builder.button(text=f"📺 {res['_id']}", callback_data=f"sel_bulk_video_{idx}")
     builder.adjust(1)
     
-    await m.answer("👇 নিচে থেকে আপনার কাঙ্ক্ষিত সিরিজটি সিলেক্ট করুন:", reply_markup=builder.as_markup())
+    await m.answer("👇 নিচে থেকে আপনার কাঙ্ক্ষিত ভিডিওটি সিলেক্ট করুন:", reply_markup=builder.as_markup())
 
-@dp.callback_query(F.data.startswith("sel_bulk_series_"))
+@dp.callback_query(F.data.startswith("sel_bulk_video_"))
 async def selected_bulk_series_cb(c: types.CallbackQuery, state: FSMContext):
     idx = int(c.data.split("_")[3])
     data = await state.get_data()
@@ -1081,12 +1083,11 @@ async def selected_bulk_series_cb(c: types.CallbackQuery, state: FSMContext):
         title=selected["_id"], 
         photo_id=selected["photo_id"], 
         db_photo_id=selected.get("db_photo_id"), 
-        categories=selected.get("categories", []),
         bulk_files=[] 
     )
     
     await state.set_state(AdminStates.waiting_for_bulk_start_num)
-    await c.message.edit_text(f"✅ <b>{selected['_id']}</b> সিলেক্ট হয়েছে!\n\nএবার শুরুর এপিসোড নাম্বারটি দিন (যেমন: 1 বা 5):", parse_mode="HTML")
+    await c.message.edit_text(f"✅ <b>{selected['_id']}</b> সিলেক্ট হয়েছে!\n\nএবার শুরুর পার্ট নাম্বারটি দিন (যেমন: 1 বা 5):", parse_mode="HTML")
 
 @dp.message(AdminStates.waiting_for_bulk_start_num, F.text)
 async def receive_bulk_start_num(m: types.Message, state: FSMContext):
@@ -1096,7 +1097,7 @@ async def receive_bulk_start_num(m: types.Message, state: FSMContext):
     
     await state.update_data(start_num=int(val))
     await state.set_state(AdminStates.waiting_for_bulk_quality)
-    await m.answer("✅ এবার এপিসোডগুলোর কমন কোয়ালিটি লিখে পাঠান (যেমন: 720p HD বা WebRip):")
+    await m.answer("✅ এবার পার্টগুলোর কমন কোয়ালিটি লিখে পাঠান (যেমন: HD বা 1080p):")
 
 @dp.message(AdminStates.waiting_for_bulk_quality, F.text)
 async def receive_bulk_quality(m: types.Message, state: FSMContext):
@@ -1109,7 +1110,7 @@ async def receive_bulk_quality(m: types.Message, state: FSMContext):
     
     await m.answer(
         f"✅ কোয়ালিটি সেভ হয়েছে!\n\n"
-        f"এবার আপনার **১ম ফাইলসহ সবগুলো এপিসোড ফাইল একসাথে সিলেক্ট করে ফরওয়ার্ড বা সেন্ড করুন**।\n"
+        f"এবার আপনার **১ম ফাইলসহ সবগুলো ভিডিও ফাইল ক্রমানুসারে সিলেক্ট করে একসাথে ফরোয়ার্ড বা সেন্ড করুন**।\n"
         f"সব ফাইল পাঠানো শেষ হলে নিচের <b>'Done'</b> বাটনে ক্লিক করুন।", 
         parse_mode="HTML", 
         reply_markup=markup
@@ -1155,7 +1156,6 @@ async def finalize_bulk_upload(c: types.CallbackQuery, state: FSMContext):
     
     title = data.get("title")
     photo_id = data.get("photo_id")
-    categories = data.get("categories", [])
     start_num = data.get("start_num", 1)
     quality = data.get("quality", "HD")
     bulk_files = data.get("bulk_files", [])
@@ -1163,28 +1163,27 @@ async def finalize_bulk_upload(c: types.CallbackQuery, state: FSMContext):
     if not bulk_files:
         return await c.message.answer("⚠️ কোনো ফাইল পাওয়া যায়নি! প্রসেস বাতিল করা হলো।")
     
-    status_msg = await c.message.answer(f"⏳ <b>ডাটাবেজে {len(bulk_files)} টি এপিসোড আপলোড হচ্ছে... অনুগ্রহ করে অপেক্ষা করুন।</b>", parse_mode="HTML")
+    status_msg = await c.message.answer(f"⏳ <b>ডাটাবেজে {len(bulk_files)} টি ভিডিও পার্ট আপলোড হচ্ছে... অনুগ্রহ করে অপেক্ষা করুন।</b>", parse_mode="HTML")
     
     success_count = 0
-    episodes_added = []
+    parts_added = []
     
     for idx, file_data in enumerate(bulk_files):
-        current_ep = start_num + idx
-        ep_quality_str = f"S01E{current_ep:02d} [{quality}]"
+        current_part = start_num + idx
+        part_quality_str = f"Video Part {current_part} [{quality}]"
         
         await db.movies.insert_one({
             "title": title, 
-            "quality": ep_quality_str, 
+            "quality": part_quality_str, 
             "photo_id": photo_id, 
             "file_id": file_data["file_id"], 
             "file_type": file_data["file_type"],
             "db_file_id": file_data.get("db_file_id"), 
             "db_photo_id": data.get("db_photo_id"),
-            "categories": categories, 
             "clicks": 0, 
             "created_at": datetime.datetime.utcnow()
         })
-        episodes_added.append(f"Episode {current_ep:02d}")
+        parts_added.append(f"Video Part {current_part}")
         success_count += 1
         
     clear_app_cache() 
@@ -1192,10 +1191,10 @@ async def finalize_bulk_upload(c: types.CallbackQuery, state: FSMContext):
     
     await c.message.answer(
         f"🎉 <b>Bulk Upload সফল হয়েছে!</b>\n\n"
-        f"📌 সিরিজ: <b>{title}</b>\n"
-        f"📦 মোট যুক্ত হয়েছে: <b>{success_count} টি এপিসোড</b>\n"
+        f"📌 ভিডিও: <b>{title}</b>\n"
+        f"📦 মোট যুক্ত হয়েছে: <b>{success_count} টি পার্ট</b>\n"
         f"🏷 কোয়ালিটি: <b>{quality}</b>\n"
-        f"🔢 এপিসোড রেঞ্জ: {episodes_added[0]} থেকে {episodes_added[-1]}", 
+        f"🔢 পার্ট রেঞ্জ: {parts_added[0]} থেকে {parts_added[-1]}", 
         parse_mode="HTML"
     )
     
@@ -1205,17 +1204,15 @@ async def finalize_bulk_upload(c: types.CallbackQuery, state: FSMContext):
             kb = [
                 [types.InlineKeyboardButton(text="📥 Download & Watch 🎬", url=f"https://t.me/{bot_info.username}?start=new")],
                 [types.InlineKeyboardButton(text="কিভাবে ডাউনলোড করবেন ❓", url=TUTORIAL_LINK)],
-                [types.InlineKeyboardButton(text="♻️ MOVIE REQUEST ♻️", url=REQUEST_LINK)]
+                [types.InlineKeyboardButton(text="♻️ REQUEST VIDEO ♻️", url=REQUEST_LINK)]
             ]
             markup = types.InlineKeyboardMarkup(inline_keyboard=kb)
-            cat_display = ", ".join(categories) if categories else "N/A"
             caption = (
-                f"🔥 <b>একাধিক নতুন এপিসোড যুক্ত হয়েছে!</b>\n\n"
+                f"🔥 <b>একাধিক নতুন ভিডিও পার্ট যুক্ত হয়েছে!</b>\n\n"
                 f"📌 <b>টাইটেল:</b> {title}\n"
-                f"🔢 <b>এপিসোড সমূহ:</b> {episodes_added[0]} - {episodes_added[-1]}\n"
-                f"🏷 <b>কোয়ালিটি:</b> {quality}\n"
-                f"🎭 <b>ক্যাটাগরি:</b> {cat_display}\n\n"
-                f"👇 <i>বট থেকে videoগুলো পেতে নিচের বাটনে ক্লিক করুন।</i>"
+                f"🔢 <b>পার্ট সমূহ:</b> {parts_added[0]} - {parts_added[-1]}\n"
+                f"🏷 <b>কোয়ালিটি:</b> {quality}\n\n"
+                f"👇 <i>বট থেকে ভিডিওগুলো পেতে নিচের বাটনে ক্লিক করুন।</i>"
             )
             await bot.send_photo(chat_id=CHANNEL_ID, photo=photo_id, caption=caption, parse_mode="HTML", reply_markup=markup)
         except Exception: pass
@@ -1247,10 +1244,10 @@ async def receive_movie_photo(m: types.Message, state: FSMContext):
         except Exception: pass
     
     if success:
-        sent_photo = await m.answer_photo(FSInputFile(temp_out), caption="✅ <b>পোস্টার রেডি!</b>\nএবার <b>টাইটেল (নাম)</b> লিখে পাঠান।", parse_mode="HTML")
+        sent_photo = await m.answer_photo(FSInputFile(temp_out), caption="✅ <b>পোস্টার রেডি!</b>\nএবার ভিডিওর <b>টাইটেল (নাম)</b> লিখে পাঠান।", parse_mode="HTML")
         if not DB_CHANNEL_ID: photo_id = sent_photo.photo[-1].file_id
     else:
-        await m.answer("✅ পোস্টার পেয়েছি! এবার <b>টাইটেল (নাম)</b> লিখে পাঠান Regel।", parse_mode="HTML")
+        await m.answer("✅ পোস্টার পেয়েছি! এবার ভিডিওর <b>টাইটেল (নাম)</b> লিখে পাঠান।", parse_mode="HTML")
         
     await state.update_data(photo_id=photo_id, db_photo_id=db_photo_id)
     await state.set_state(AdminStates.waiting_for_title)
@@ -1263,38 +1260,29 @@ async def receive_movie_photo(m: types.Message, state: FSMContext):
 async def receive_movie_title(m: types.Message, state: FSMContext):
     await state.update_data(title=m.text.strip())
     await state.set_state(AdminStates.waiting_for_quality)
-    await m.answer("✅ নাম সেভ হয়েছে! এবার ফাইলের <b>কোয়ালিটি বা এপিসোড নাম্বার</b> দিন।", parse_mode="HTML")
+    await m.answer("✅ নাম সেভ হয়েছে! এবার ভিডিওর কোয়ালিটি বা সংক্ষিপ্ত বিবরণ দিন (যেমন: HD, Full HD বা 1080p)।", parse_mode="HTML")
 
 @dp.message(AdminStates.waiting_for_quality, F.text)
 async def receive_movie_quality(m: types.Message, state: FSMContext):
-    await state.update_data(quality=m.text.strip())
-    await state.set_state(AdminStates.waiting_for_category)
-    await m.answer("✅ কোয়ালিটি সেভ হয়েছে!\n\nএবার মুভির <b>ক্যাটাগরি</b> লিখে পাঠান।\n<i>(একাধিক হলে কমা দিয়ে লিখুন। যেমন: Bangla Dub, Action, 18+)</i>\n\n<i>(ক্যাটাগরি না দিতে চাইলে 'Skip' লিখুন)</i>", parse_mode="HTML")
-
-@dp.message(AdminStates.waiting_for_category, F.text)
-async def receive_movie_category(m: types.Message, state: FSMContext):
-    cat_text = m.text.strip()
-    if cat_text.lower() in ['skip', 'none', 'no']: categories = []
-    else: categories = [cat.strip() for cat in cat_text.split(",") if cat.strip()]
-    
+    quality = m.text.strip()
     data = await state.get_data()
     await state.clear()
     
     title = data["title"]
     photo_id = data["photo_id"]
-    quality = data["quality"]
+    
+    # নতুন সম্পূর্ণ নতুন ভিডিওর ১ম পার্ট হিসেবে 'Video Part 1' সেট হবে
+    quality_str = f"Video Part 1 [{quality}]"
     
     await db.movies.insert_one({
-        "title": title, "quality": quality, "photo_id": photo_id, 
+        "title": title, "quality": quality_str, "photo_id": photo_id, 
         "file_id": data["file_id"], "file_type": data["file_type"],
         "db_file_id": data.get("db_file_id"), "db_photo_id": data.get("db_photo_id"),
-        "categories": categories,
         "clicks": 0, "created_at": datetime.datetime.utcnow()
     })
     clear_app_cache() 
     
-    cat_display = ", ".join(categories) if categories else "N/A"
-    await m.answer(f"🎉 <b>{title} [{quality}]</b> অ্যাপে সফলভাবে যুক্ত করা হয়েছে!\n🏷 ক্যাটাগরি: <b>{cat_display}</b>", parse_mode="HTML")
+    await m.answer(f"🎉 <b>{title} [{quality_str}]</b> সফলভাবে অ্যাপে যুক্ত করা হয়েছে!", parse_mode="HTML")
 
     if CHANNEL_ID:
         try:
@@ -1302,10 +1290,10 @@ async def receive_movie_category(m: types.Message, state: FSMContext):
             kb = [
                 [types.InlineKeyboardButton(text="📥 Download & Watch 🎬", url=f"https://t.me/{bot_info.username}?start=new")],
                 [types.InlineKeyboardButton(text="কিভাবে ডাউনলোড করবেন ❓", url=TUTORIAL_LINK)],
-                [types.InlineKeyboardButton(text="♻️ MOVIE REQUEST ♻️", url=REQUEST_LINK)]
+                [types.InlineKeyboardButton(text="♻️ REQUEST VIDEO ♻️", url=REQUEST_LINK)]
             ]
             markup = types.InlineKeyboardMarkup(inline_keyboard=kb)
-            caption = (f"🔥 <b>নতুন ফাইল যুক্ত হয়েছে!</b>\n\n📌 <b>টাইটেল:</b> {title}\n🏷 <b>কোয়ালিটি:</b> {quality}\n🎭 <b>ক্যাটাগরি:</b> {cat_display}\n\n👇 <i>বট থেকে...</i>")
+            caption = (f"🔥 <b>নতুন ভিডিও যুক্ত হয়েছে!</b>\n\n📌 <b>টাইটেল:</b> {title}\n🏷 <b>পার্ট:</b> {quality_str}\n\n👇 <i>বট থেকে...</i>")
             await bot.send_photo(chat_id=CHANNEL_ID, photo=photo_id, caption=caption, parse_mode="HTML", reply_markup=markup)
         except Exception: pass
 
