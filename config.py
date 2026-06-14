@@ -25,18 +25,18 @@ TOKEN = "8756368847:AAGUAbieUC40Fm4axtSNUWGuOQtgUjbFZGU"
 API_ID = 28870226                              
 API_HASH = "a5b1ff3f75941649bf5bc159782f0f00"                
 SESSION_STRING = ""                            
-MONGO_URL = "mongodb+srv://manogog673:manogog673@cluster0.ot1qt.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"              
+MONGO_URL = "mongodb+srv://MoviaXBot270:MoviaXBot270@cluster0.kbkpgt6.mongodb.net/?appName=Cluster0"              
 OWNER_ID = 7528643689                           
 CHANNEL_ID = "-1003655443965"                   
 ADMIN_PASS = "admin123"                        
-BOT_USERNAME = "MoviesLinkBD_Bot"                
+BOT_USERNAME = "BDViralLinkProBot"                
 
 APP_URL = os.getenv("APP_URL", "http://localhost:8000")
 
 TUTORIAL_LINK = "https://t.me/HowtoDowlnoad/41"
-REQUEST_LINK = "https://t.me/+dld6-uEkdvQ5Yjg1"
+REQUEST_LINK = "https://t.me/+NEMfLNawn2hkNjg9"
 
-_db_ch = "-1003972700063"                       
+_db_ch = "-1004423843057"                       
 DB_CHANNEL_ID = int(_db_ch) if _db_ch.lstrip('-').isdigit() else None
 
 PORT_NUMBER = 8000                             
