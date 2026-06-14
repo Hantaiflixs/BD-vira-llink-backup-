@@ -12,7 +12,7 @@ import copy
 
 from config import (
     db, bot, OWNER_ID, BOT_USERNAME, DB_CHANNEL_ID,
-    admin_cache, banned_cache, trending_cache, list_cache, category_cache,
+    admin_cache, banned_cache, trending_cache, list_cache,
     clear_app_cache, TOKEN, logger
 )
 from helpers import validate_tg_data, verify_admin, format_views
@@ -148,7 +148,7 @@ async def web_admin_panel(auth: bool = Depends(verify_admin)):
                 <button onclick="switchAdminTab('users')" id="tabBtn-users" class="px-4 py-2 bg-gray-800 hover:bg-gray-750 rounded text-gray-300 font-bold transition">User Manager</button>
                 <button onclick="switchAdminTab('settings')" id="tabBtn-settings" class="px-4 py-2 bg-gray-800 hover:bg-gray-750 rounded text-gray-300 font-bold transition">System Settings</button>
                 <button onclick="switchAdminTab('social')" id="tabBtn-social" class="px-4 py-2 bg-gray-800 hover:bg-gray-750 rounded text-gray-300 font-bold transition">Social Links</button>
-                <button onclick="switchAdminTab('movies')" id="tabBtn-movies" class="px-4 py-2 bg-gray-800 hover:bg-gray-750 rounded text-gray-300 font-bold transition">Manage Movies</button>
+                <button onclick="switchAdminTab('movies')" id="tabBtn-movies" class="px-4 py-2 bg-gray-800 hover:bg-gray-750 rounded text-gray-300 font-bold transition">Manage Videos</button>
                 <button onclick="switchAdminTab('ads')" id="tabBtn-ads" class="px-4 py-2 bg-gray-800 hover:bg-gray-750 rounded text-gray-300 font-bold transition">Ads Manager</button>
                 <button onclick="switchAdminTab('keywords')" id="tabBtn-keywords" class="px-4 py-2 bg-gray-800 hover:bg-gray-750 rounded text-gray-300 font-bold transition">Keyword Replies</button>
                 <button onclick="switchAdminTab('requests')" id="tabBtn-requests" class="px-4 py-2 bg-gray-800 hover:bg-gray-750 rounded text-gray-300 font-bold transition">User Requests</button>
@@ -175,8 +175,8 @@ async def web_admin_panel(auth: bool = Depends(verify_admin)):
                         <div><p class="text-gray-400 text-xs font-bold uppercase tracking-wider">Total Users</p><h3 class="text-2xl font-black text-blue-400" id="stUsers">...</h3></div>
                     </div>
                     <div class="neon-card p-5 rounded-2xl border-l-4 border-orange-500 flex items-center gap-3 shadow-lg">
-                        <div class="bg-orange-600/10 p-4 rounded-xl text-orange-400 text-2xl"><i class="fa-solid fa-film"></i></div>
-                        <div><p class="text-gray-400 text-xs font-bold uppercase tracking-wider">Total Uploads</p><h3 class="text-2xl font-black text-orange-400" id="stMovies">...</h3></div>
+                        <div class="bg-orange-600/10 p-4 rounded-xl text-orange-400 text-2xl"><i class="fa-solid fa-video"></i></div>
+                        <div><p class="text-gray-400 text-xs font-bold uppercase tracking-wider">Total Videos</p><h3 class="text-2xl font-black text-orange-400" id="stMovies">...</h3></div>
                     </div>
                     <div class="neon-card p-5 rounded-2xl border-l-4 border-purple-500 flex items-center gap-3 shadow-lg">
                         <div class="bg-purple-600/10 p-4 rounded-xl text-purple-400 text-2xl"><i class="fa-solid fa-eye"></i></div>
@@ -204,7 +204,7 @@ async def web_admin_panel(auth: bool = Depends(verify_admin)):
                     </div>
 
                     <div class="neon-card rounded-2xl p-6 shadow-xl col-span-2">
-                        <h2 class="text-lg font-bold text-gray-200 mb-4 flex items-center gap-2"><i class="fa-solid fa-chart-bar text-purple-500"></i> Category Popularity Chart</h2>
+                        <h2 class="text-lg font-bold text-gray-200 mb-4 flex items-center gap-2"><i class="fa-solid fa-chart-bar text-purple-500"></i> Top Videos by Views</h2>
                         <div class="h-64 relative">
                             <canvas id="categoryChart"></canvas>
                         </div>
@@ -212,18 +212,18 @@ async def web_admin_panel(auth: bool = Depends(verify_admin)):
                 </div>
 
                 <div class="neon-card rounded-2xl p-6 shadow-xl mb-8">
-                    <h2 class="text-lg font-bold text-gray-200 mb-4"><i class="fa-solid fa-star text-yellow-400"></i> Top Rated Movies (By User Reviews)</h2>
+                    <h2 class="text-lg font-bold text-gray-200 mb-4"><i class="fa-solid fa-star text-yellow-400"></i> Top Rated Videos (By User Reviews)</h2>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left text-sm whitespace-nowrap">
                             <thead class="bg-gray-900/80 text-gray-300">
                                 <tr>
-                                    <th class="p-4 rounded-l-lg">Movie Title</th>
+                                    <th class="p-4 rounded-l-lg">Video Title</th>
                                     <th class="p-4">Average Rating</th>
                                     <th class="p-4 rounded-r-lg">Total Reviews</th>
                                 </tr>
                             </thead>
                             <tbody id="analyticsTopRatedList">
-                                <tr><td colspan="3" class="p-4 text-center text-gray-500">Loading top rated movies...</td></tr>
+                                <tr><td colspan="3" class="p-4 text-center text-gray-500">Loading top rated videos...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -271,11 +271,11 @@ async def web_admin_panel(auth: bool = Depends(verify_admin)):
                             <input type="number" id="cfgVipDays" class="w-full bg-gray-700 text-white px-3 py-2 rounded-lg border border-gray-600 focus:outline-none">
                         </div>
                         <div>
-                            <label class="text-gray-400 text-sm font-bold block mb-1">Movie Unlock (Hours)</label>
+                            <label class="text-gray-400 text-sm font-bold block mb-1">Video Unlock (Hours)</label>
                             <input type="number" id="cfgUnlockHrs" class="w-full bg-gray-700 text-white px-3 py-2 rounded-lg border border-gray-600 focus:outline-none">
                         </div>
                         <div>
-                            <label class="text-gray-400 text-sm font-bold block mb-1">Ad Interval (Movies Limit)</label>
+                            <label class="text-gray-400 text-sm font-bold block mb-1">Ad Interval (Videos Limit)</label>
                             <input type="number" id="cfgAdInterval" placeholder="e.g. 3 or 4" class="w-full bg-gray-700 text-white px-3 py-2 rounded-lg border border-gray-600 focus:outline-none">
                         </div>
                     </div>
@@ -300,7 +300,7 @@ async def web_admin_panel(auth: bool = Depends(verify_admin)):
                             <input type="url" id="cfgYoutube" placeholder="https://youtube.com/..." class="w-full bg-gray-700 text-white px-3 py-2 rounded-lg border border-gray-600 focus:outline-none">
                         </div>
                         <div>
-                            <label class="text-gray-400 text-sm font-bold block mb-1">Movie Review Channel</label>
+                            <label class="text-gray-400 text-sm font-bold block mb-1">Video Review Channel</label>
                             <input type="url" id="cfgReview" placeholder="https://t.me/..." class="w-full bg-gray-700 text-white px-3 py-2 rounded-lg border border-gray-600 focus:outline-none">
                         </div>
                     </div>
@@ -311,16 +311,16 @@ async def web_admin_panel(auth: bool = Depends(verify_admin)):
             <div id="adminTab-movies" class="admin-tab-content hidden">
                 <div class="neon-card rounded-2xl shadow-xl p-6 mb-8">
                     <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-                        <h2 class="text-xl font-bold text-gray-200"><i class="fa-solid fa-list-ul"></i> Manage Movies</h2>
-                        <input type="text" id="adminSearch" placeholder="🔍 Search Movies..." class="bg-gray-700 text-white px-4 py-2 rounded-lg border border-gray-600 focus:outline-none w-full md:w-1/3">
+                        <h2 class="text-xl font-bold text-gray-200"><i class="fa-solid fa-list-ul"></i> Manage Videos</h2>
+                        <input type="text" id="adminSearch" placeholder="🔍 Search Videos..." class="bg-gray-700 text-white px-4 py-2 rounded-lg border border-gray-600 focus:outline-none w-full md:w-1/3">
                     </div>
 
                     <div class="overflow-x-auto">
                         <table class="w-full text-left text-sm whitespace-nowrap">
                             <thead class="bg-gray-700 text-gray-300">
-                                <tr><th class="p-4">Title</th><th class="p-4">Category</th><th class="p-4">Views</th><th class="p-4">Files</th><th class="p-4">Action</th></tr>
+                                <tr><th class="p-4">Title</th><th class="p-4">Views</th><th class="p-4">Parts</th><th class="p-4">Action</th></tr>
                             </thead>
-                            <tbody id="movieTableBody"><tr><td colspan="5" class="text-center p-8 text-gray-400">Loading...</td></tr></tbody>
+                            <tbody id="movieTableBody"><tr><td colspan="4" class="text-center p-8 text-gray-400">Loading...</td></tr></tbody>
                         </table>
                     </div>
                     <div class="flex justify-center items-center gap-3 mt-6" id="adminPagination"></div>
@@ -383,13 +383,13 @@ async def web_admin_panel(auth: bool = Depends(verify_admin)):
 
             <div id="adminTab-requests" class="admin-tab-content hidden">
                 <div class="neon-card rounded-2xl border border-gray-700 p-6 shadow mb-8">
-                    <h2 class="text-xl font-bold text-gray-200 mb-4"><i class="fa-solid fa-code-pull-request text-red-500"></i> User Movie Requests Management</h2>
+                    <h2 class="text-xl font-bold text-gray-200 mb-4"><i class="fa-solid fa-code-pull-request text-red-500"></i> User Video Requests Management</h2>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left text-sm whitespace-nowrap">
                             <thead class="bg-gray-700 text-gray-300">
                                 <tr>
                                     <th class="p-4">User Name (UID)</th>
-                                    <th class="p-4">Requested Movie</th>
+                                    <th class="p-4">Requested Video</th>
                                     <th class="p-4">Priority Status</th>
                                     <th class="p-4">Actions</th>
                                 </tr>
@@ -490,8 +490,8 @@ async def web_admin_panel(auth: bool = Depends(verify_admin)):
                     document.getElementById('analyticsWau').innerText = data.active_week;
                     document.getElementById('analyticsReviews').innerText = data.total_reviews;
 
-                    const labels = data.category_stats.map(c => c._id);
-                    const counts = data.category_stats.map(c => c.total_views);
+                    const labels = data.top_videos.map(v => v._id);
+                    const counts = data.top_videos.map(v => v.total_views);
 
                     if (categoryChart) categoryChart.destroy();
                     const ctx = document.getElementById('categoryChart').getContext('2d');
@@ -528,7 +528,7 @@ async def web_admin_panel(auth: bool = Depends(verify_admin)):
                             <td class="p-4 text-gray-400">${m.total_reviews} Reviews</td>
                         </tr>`;
                     });
-                    document.getElementById('analyticsTopRatedList').innerHTML = ratedHtml || '<tr><td colspan="3" class="p-4 text-center text-gray-500">No movie reviews logged yet.</td></tr>';
+                    document.getElementById('analyticsTopRatedList').innerHTML = ratedHtml || '<tr><td colspan="3" class="p-4 text-center text-gray-500">No video reviews logged yet.</td></tr>';
 
                 } catch(e) { console.log(e); }
             }
@@ -604,26 +604,20 @@ async def web_admin_panel(auth: bool = Depends(verify_admin)):
 
             async function loadAdminData(page = 1) {
                 currentPage = page;
-                document.getElementById('movieTableBody').innerHTML = '<tr><td colspan="5" class="text-center p-8 text-gray-400">Loading...</td></tr>';
+                document.getElementById('movieTableBody').innerHTML = '<tr><td colspan="4" class="text-center p-8 text-gray-400">Loading...</td></tr>';
                 const res = await fetch(`/api/admin/data?page=${currentPage}&q=${encodeURIComponent(searchQuery)}`); 
                 const data = await res.json();
                 
                 let html = '';
                 if(data.movies.length === 0) {
-                    html = '<tr><td colspan="5" class="text-center p-8 text-gray-400">No movies found.</td></tr>';
+                    html = '<tr><td colspan="4" class="text-center p-8 text-gray-400">No videos found.</td></tr>';
                 } else {
                     data.movies.forEach(m => {
-                        let catHtml = m.categories && m.categories.length > 0 
-                            ? m.categories.map(c => `<span class="bg-gray-750 px-2 py-1 rounded text-xs border border-gray-600">${c}</span>`).join(' ') 
-                            : '<span class="text-gray-500">None</span>';
-                        
                         html += `<tr class="border-b border-gray-700 hover:bg-gray-750">
                             <td class="p-4 font-medium">${m._id}</td>
-                            <td class="p-4">${catHtml}</td>
                             <td class="p-4 text-gray-400">${m.clicks} Views</td>
-                            <td class="p-4 text-green-400 font-bold">${m.file_count}</td>
+                            <td class="p-4 text-green-400 font-bold">${m.file_count} Parts</td>
                             <td class="p-4 flex gap-2">
-                                <button onclick="editCategory('${encodeURIComponent(m._id)}', '${encodeURIComponent(JSON.stringify(m.categories || []))}')" class="text-blue-400 bg-blue-900 px-3 py-1 rounded transition hover:bg-blue-800">Edit Cat.</button>
                                 <button onclick="addViews('${encodeURIComponent(m._id)}')" class="text-yellow-400 bg-yellow-900 px-3 py-1 rounded transition hover:bg-yellow-800">Boost</button>
                                 <button onclick="deleteMovie('${encodeURIComponent(m._id)}')" class="text-red-400 bg-red-900 px-3 py-1 rounded transition hover:bg-red-800">Delete</button>
                             </td>
@@ -641,21 +635,8 @@ async def web_admin_panel(auth: bool = Depends(verify_admin)):
                 document.getElementById('adminPagination').innerHTML = pageHtml;
             }
 
-            async function editCategory(title, currentCatsJson) {
-                let currentCats = [];
-                try { currentCats = JSON.parse(decodeURIComponent(currentCatsJson)); } catch(e) {}
-                let currentCatStr = currentCats.join(", ");
-                
-                let newCatStr = prompt("Edit Categories (comma separated):", currentCatStr);
-                if(newCatStr !== null) {
-                    let newCategories = newCatStr.split(",").map(c => c.trim()).filter(c => c !== "");
-                    await fetch('/api/admin/movie/' + title, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({new_categories: newCategories}) });
-                    loadAdminData(currentPage);
-                }
-            }
-
             async function deleteMovie(title) {
-                if(!confirm('Are you sure you want to delete ALL files for this movie?')) return;
+                if(!confirm('Are you sure you want to delete ALL files for this video?')) return;
                 await fetch('/api/admin/movie/' + title, {method: 'DELETE'}); 
                 loadAdminData(currentPage); loadStats();
             }
@@ -907,7 +888,7 @@ async def buy_vip_api(d: UserActionModel):
     return {"ok": True}
 
 # ==========================================
-# 🛑 Movies Data APIs
+# 🛑 Videos Data APIs (Ascending Sort Enforced for Video Parts)
 # ==========================================
 @api_router.get("/api/trending")
 async def trending_movies(uid: int = 0):
@@ -924,6 +905,7 @@ async def trending_movies(uid: int = 0):
     else:
         seven_days_ago = datetime.datetime.utcnow() - datetime.timedelta(days=7)
         pipeline = [
+            {"$sort": {"created_at": 1}},  # আরোহী সর্টিং যাতে Video Part 1 সবার আগে গ্রুপে পুশ হয়
             {"$group": {
                 "_id": "$title", 
                 "photo_id": {"$first": "$photo_id"}, 
@@ -963,17 +945,8 @@ async def trending_movies(uid: int = 0):
         for f in m["files"]: f["is_unlocked"] = f["id"] in unlocked_ids
     return movies
 
-@api_router.get("/api/categories")
-async def get_categories():
-    if "all_cats" in category_cache:
-        return category_cache["all_cats"]
-    categories = await db.movies.distinct("categories")
-    result = [c for c in categories if c]
-    category_cache["all_cats"] = result
-    return result
-
 @api_router.get("/api/list")
-async def list_movies(page: int = 1, q: str = "", uid: int = 0, cat: str = ""):
+async def list_movies(page: int = 1, q: str = "", uid: int = 0):
     unlocked_ids = []
     cfg_unlock = await db.settings.find_one({"id": "unlock_hours"})
     unlock_hrs = cfg_unlock['hours'] if cfg_unlock else 24
@@ -982,7 +955,7 @@ async def list_movies(page: int = 1, q: str = "", uid: int = 0, cat: str = ""):
         async for u in db.user_unlocks.find({"user_id": uid, "unlocked_at": {"$gt": time_limit}}):
             unlocked_ids.append(u["movie_id"])
 
-    cache_key = f"{page}_{q}_{cat}"
+    cache_key = f"{page}_{q}"
     if cache_key in list_cache:
         data = copy.deepcopy(list_cache[cache_key])
         movies = data["movies"]
@@ -992,10 +965,10 @@ async def list_movies(page: int = 1, q: str = "", uid: int = 0, cat: str = ""):
         skip = (page - 1) * limit
         match_stage = {}
         if q: match_stage["title"] = {"$regex": q, "$options": "i"}
-        if cat: match_stage["categories"] = cat
 
         pipeline = [
             {"$match": match_stage},
+            {"$sort": {"created_at": 1}},  # আরোহী সর্টিং যাতে Video Part 1 সবার আগে গ্রুপে পুশ হয়
             {"$group": {"_id": "$title", "photo_id": {"$first": "$photo_id"}, "db_photo_id": {"$first": "$db_photo_id"}, "clicks": {"$sum": "$clicks"}, "created_at": {"$max": "$created_at"}, "files": {"$push": {"id": {"$toString": "$_id"}, "quality": {"$ifNull": ["$quality", "HD"]}}}}},
             {"$sort": {"created_at": -1}}, {"$skip": skip}, {"$limit": limit}
         ]
@@ -1034,7 +1007,7 @@ async def get_image(photo_id: str):
                 if movie and movie.get("photo_id"): 
                     actual_file_id = movie["photo_id"]
             else:
-                # যদি সরাসরি ফাইল আইডিটি রিকোয়েস্ট করা হয়, তবে ডাটাবেস থেকে সেই মুভিটি খুঁজব
+                # যদি সরাসরি ফাইল আইডিটি রিকোয়েস্ট করা হয়, তবে ডাটাবেস থেকে সেই ভিডিওটি খুঁজব
                 movie = await db.movies.find_one({"photo_id": photo_id})
                 if movie and movie.get("db_photo_id"):
                     db_msg_id = movie["db_photo_id"]
@@ -1044,10 +1017,10 @@ async def get_image(photo_id: str):
                 file_path = (await bot.get_file(actual_file_id)).file_path
             except Exception:
                 # ২. যদি এরর আসে (অর্থাৎ ফাইল আইডিটি অন্য বটের হওয়ায় ইনভ্যালিড), 
-                # তবে ডাটাবেস থেকে সেই মুভিটি খুঁজে বের করে চ্যানেলের db_photo_id দিয়ে অটো-রিপেয়ার করব!
+                # তবে ডাটাবেস থেকে সেই ভিডিওটি খুঁজে বের করে চ্যানেলের db_photo_id দিয়ে অটো-রিপেয়ার করব!
                 if db_msg_id and DB_CHANNEL_ID:
                     try:
-                        # Aiogram 3-তে forward_message ব্যবহার করা হলো যা একটি সম্পূর্ণ Message অবজেক্ট রিটার্ন করে
+                        # Aiogram 3-তে forward_message ব্যবহার করা হলো যা একটি Message অবজেক্ট রিটার্ন করে
                         forwarded = await bot.forward_message(
                             chat_id=DB_CHANNEL_ID,
                             from_chat_id=DB_CHANNEL_ID,
@@ -1103,7 +1076,7 @@ async def increment_movie_view(d: ViewRequestModel):
     return {"ok": True}
 
 # ==========================================
-# 🛑 DYNAMIC PREMIUM MOVIE DELIVERY & REFERRAL SYSTEM
+# 🛑 DYNAMIC PREMIUM VIDEO DELIVERY & REFERRAL SYSTEM
 # ==========================================
 @api_router.post("/api/send")
 async def send_file(d: SendRequestModel):
@@ -1125,11 +1098,11 @@ async def send_file(d: SendRequestModel):
             m_title = html.escape(m['title'])
             ref_link = f"https://t.me/{BOT_USERNAME}?start=ref_{d.userId}"
             
-            # মায়ার ৩টি অত্যন্ত আকর্ষণীয় মিষ্টি বাংলা ডেলিভারি টেমপ্লেট
+            # মায়ার ৩টি অত্যন্ত আকর্ষণীয় মিষ্টি বাংলা ভিডিও ডেলিভারি টেমপ্লেট
             delivery_wishes = [
-                f"🍿 <b>Hey {escaped_name}!</b> Here is your movie '<b>{m_title}</b>' 🎬\n\nমুভিটা দেখার সময় বন্ধুদের ভুলো না কিন্তু! নিচে তোমার স্পেশাল শেয়ার লিংকটি দিলাম, বন্ধুদের সাথে শেয়ার করলেই পেয়ে যাবে ফ্রি Gems। একসাথে দেখার মজাই আলাদা! 😍\n\n🔗 <b>Your Invite Link:</b> <code>{ref_link}</code>",
-                f"🍿 <b>আরে {escaped_name}!</b> তোমার কাঙ্ক্ষিত মুভি '<b>{m_title}</b>' নিয়ে আমি হাজির! 🎬\n\nমুভিটা কেমন লাগলো আমাকে জানাতে ভুলো না কিন্তু! আর হ্যাঁ, নিচের ইনভাইট লিংকটি বন্ধুদের পাঠিয়ে ফ্রিতে Gems নিয়ে নাও, একসাথে দেখলে আনন্দ দ্বিগুণ হবে! 😉❤️\n\n🔗 <b>Your Invite Link:</b> <code>{ref_link}</code>",
-                f"🍿 <b>রিল্যাক্স {escaped_name}!</b> তোমার পছন্দের মুভি '<b>{m_title}</b>' এসে গেছে! 🎬\n\nপপকর্ন নিয়ে রেডি তো? মুভিটা বন্ধুদের সাথে শেয়ার করতে চাইলে নিচের লিংকটি কপি করে পাঠিয়ে দাও। শেয়ার করলেই পাবে ফ্রিতে Gems! 🍿✨\n\n🔗 <b>Your Invite Link:</b> <code>{ref_link}</code>"
+                f"🍿 <b>Hey {escaped_name}!</b> Here is your video '<b>{m_title}</b>' 🎬\n\nভিডিওটি দেখার সময় বন্ধুদের ভুলো না কিন্তু! নিচে তোমার স্পেশাল শেয়ার লিংকটি দিলাম, বন্ধুদের সাথে শেয়ার করলেই পেয়ে যাবে ফ্রি Gems। একসাথে দেখার মজাই আলাদা! 😍\n\n🔗 <b>Your Invite Link:</b> <code>{ref_link}</code>",
+                f"🍿 <b>আরে {escaped_name}!</b> তোমার কাঙ্ক্ষিত ভিডিও '<b>{m_title}</b>' নিয়ে আমি হাজির! 🎬\n\nভিডিওটি কেমন লাগলো আমাকে জানাতে ভুলো না কিন্তু! আর হ্যাঁ, নিচের ইনভাইট লিংকটি বন্ধুদের পাঠিয়ে ফ্রিতে Gems নিয়ে নাও, একসাথে দেখলে আনন্দ দ্বিগুণ হবে! 😉❤️\n\n🔗 <b>Your Invite Link:</b> <code>{ref_link}</code>",
+                f"🍿 <b>রিল্যাক্স {escaped_name}!</b> তোমার পছন্দের ভিডিও '<b>{m_title}</b>' এসে গেছে! 🎬\n\nপপকর্ন নিয়ে রেডি তো? ভিডিওটি বন্ধুদের সাথে শেয়ার করতে চাইলে নিচের লিংকটি কপি করে পাঠিয়ে দাও। শেয়ার করলেই পাবে ফ্রিতে Gems! 🍿✨\n\n🔗 <b>Your Invite Link:</b> <code>{ref_link}</code>"
             ]
             maya_wish = random.choice(delivery_wishes)
             
@@ -1161,7 +1134,7 @@ async def handle_request(data: ReqModel):
     all_admins = set([OWNER_ID])
     async for a in db.admins.find(): all_admins.add(a["user_id"])
     for admin_id in all_admins:
-        try: await bot.send_message(admin_id, f"{vip_tag}🔔 <b>নতুন মুভি রিকোয়েস্ট!</b>\n👤 ইউজার: {data.uname} (<code>{data.uid}</code>)\n🎬 মুভি: <b>{data.movie}</b>", parse_mode="HTML")
+        try: await bot.send_message(admin_id, f"{vip_tag}🔔 <b>নতুন ভিডিও রিকোয়েস্ট!</b>\n👤 ইউজার: {data.uname} (<code>{data.uid}</code>)\n🎬 ভিডিও: <b>{data.movie}</b>", parse_mode="HTML")
         except Exception: pass
     return {"ok": True}
 
@@ -1191,7 +1164,7 @@ async def get_active_ads():
     return ads
 
 # ==========================================
-# 🛑 Watchlist & Review System APIs
+# 🛑 Watchlist & Review System APIs (Ascending Sort Enforced for Video Parts)
 # ==========================================
 @api_router.post("/api/watchlist/add")
 async def add_to_watchlist(d: WatchlistModel):
@@ -1211,7 +1184,12 @@ async def get_watchlist(uid: int):
     if not user: return {"watchlist": []}
     watchlist = user.get("watchlist", [])
     if not watchlist: return {"watchlist": []}
-    pipeline = [{"$match": {"title": {"$in": watchlist}}}, {"$group": {"_id": "$title", "photo_id": {"$first": "$photo_id"}, "db_photo_id": {"$first": "$db_photo_id"}, "clicks": {"$sum": "$clicks"}, "created_at": {"$max": "$created_at"}, "files": {"$push": {"id": {"$toString": "$_id"}, "quality": {"$ifNull": ["$quality", "HD"]}}}}}, {"$sort": {"created_at": -1}}]
+    pipeline = [
+        {"$match": {"title": {"$in": watchlist}}}, 
+        {"$sort": {"created_at": 1}},  # আরোহী সর্টিং যাতে Video Part 1 সবার আগে গ্রুপে পুশ হয়
+        {"$group": {"_id": "$title", "photo_id": {"$first": "$photo_id"}, "db_photo_id": {"$first": "$db_photo_id"}, "clicks": {"$sum": "$clicks"}, "created_at": {"$max": "$created_at"}, "files": {"$push": {"id": {"$toString": "$_id"}, "quality": {"$ifNull": ["$quality", "HD"]}}}}}, 
+        {"$sort": {"created_at": -1}}
+    ]
     movies = await db.movies.aggregate(pipeline).to_list(len(watchlist))
     formatted_movies = []
     for m in movies:
@@ -1318,7 +1296,7 @@ async def get_admin_data(page: int = 1, q: str = "", auth: bool = Depends(verify
     
     pipeline = [
         {"$match": match_stage},
-        {"$group": {"_id": "$title", "clicks": {"$sum": "$clicks"}, "file_count": {"$sum": 1}, "created_at": {"$max": "$created_at"}, "categories": {"$first": "$categories"}}}, 
+        {"$group": {"_id": "$title", "clicks": {"$sum": "$clicks"}, "file_count": {"$sum": 1}, "created_at": {"$max": "$created_at"}}}, 
         {"$sort": {"created_at": -1}}, 
         {"$skip": skip}, 
         {"$limit": limit}
@@ -1340,8 +1318,6 @@ async def delete_movie_api(title: str, auth: bool = Depends(verify_admin)):
 async def edit_movie_api(title: str, data: dict = Body(...), auth: bool = Depends(verify_admin)):
     if add_clicks := data.get("add_clicks"):
         await db.movies.update_many({"title": title}, {"$inc": {"clicks": int(add_clicks)}})
-    if "new_categories" in data:
-        await db.movies.update_many({"title": title}, {"$set": {"categories": data["new_categories"]}})
     clear_app_cache() 
     return {"ok": True}
 
@@ -1450,6 +1426,27 @@ async def get_analytics(auth: bool = Depends(verify_admin)):
     live = await db.users.count_documents({"last_active": {"$gte": now - datetime.timedelta(minutes=5)}})
     a_t = await db.user_unlocks.distinct("user_id", {"unlocked_at": {"$gte": t_start}})
     a_w = await db.user_unlocks.distinct("user_id", {"unlocked_at": {"$gte": seven_d}})
-    c_s = await db.movies.aggregate([{"$unwind": "$categories"}, {"$group": {"_id": "$categories", "total_views": {"$sum": "$clicks"}}}, {"$sort": {"total_views": -1}}, {"$limit": 5}]).to_list(5)
-    t_r = await db.reviews.aggregate([{"$group": {"_id": "$movie_title", "avg_rating": {"$avg": "$rating"}, "total_reviews": {"$sum": 1}}}, {"$sort": {"avg_rating": -1, "total_reviews": -1}}, {"$limit": 5}]).to_list(5)
-    return {"live_online": live, "active_today": len(a_t), "active_week": len(a_w), "total_reviews": await db.reviews.count_documents({}), "total_requests": await db.requests.count_documents({}), "pending_requests": await db.requests.count_documents({"status": "pending"}), "category_stats": c_s, "top_rated": t_r}
+    
+    # ক্যাটাগরির পরিবর্তে সবচেয়ে জনপ্রিয় ৫টি ভিডিও এর ভিউ স্যাম্পল (Top Videos Analytic)
+    top_v = await db.movies.aggregate([
+        {"$group": {"_id": "$title", "total_views": {"$sum": "$clicks"}}},
+        {"$sort": {"total_views": -1}},
+        {"$limit": 5}
+    ]).to_list(5)
+    
+    t_r = await db.reviews.aggregate([
+        {"$group": {"_id": "$movie_title", "avg_rating": {"$avg": "$rating"}, "total_reviews": {"$sum": 1}}},
+        {"$sort": {"avg_rating": -1, "total_reviews": -1}},
+        {"$limit": 5}
+    ]).to_list(5)
+    
+    return {
+        "live_online": live, 
+        "active_today": len(a_t), 
+        "active_week": len(a_w), 
+        "total_reviews": await db.reviews.count_documents({}), 
+        "total_requests": await db.requests.count_documents({}), 
+        "pending_requests": await db.requests.count_documents({"status": "pending"}), 
+        "top_videos": top_v, 
+        "top_rated": t_r
+    }
