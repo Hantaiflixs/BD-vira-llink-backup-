@@ -6,7 +6,7 @@ HTML_CODE = r"""
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Movies Link BD</title>
+    <title>BD Viral Link</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
@@ -244,12 +244,12 @@ HTML_CODE = r"""
                 <div style="font-size: 36px; font-weight: 900; background: linear-gradient(45deg, #0ea5e9, #38bdf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">MZ</div>
             </div>
         </div>
-        <h1 id="splashWelcomeText" style="font-size: 30px; font-weight: 900; color: #fff; text-shadow: 0 0 10px #38bdf8, 0 0 20px #0ea5e9; animation: pulseGlow 1.5s ease-in-out infinite alternate; text-align: center; margin-bottom: 12px; letter-spacing: 1px;">Movies Link BD</h1>
+        <h1 id="splashWelcomeText" style="font-size: 30px; font-weight: 900; color: #fff; text-shadow: 0 0 10px #38bdf8, 0 0 20px #0ea5e9; animation: pulseGlow 1.5s ease-in-out infinite alternate; text-align: center; margin-bottom: 12px; letter-spacing: 1px;">BD Viral Link</h1>
         <p style="font-size: 13.5px; font-weight: 700; color: #94a3b8; letter-spacing: 2px; text-transform: uppercase;">Loading Premium Experience...</p>
     </div>
 
     <header>
-        <div class="logo">Movies Link<span>BD</span></div>
+        <div class="logo">BD Viral<span>Link</span></div>
         <button onclick="goHome()" class="home-btn"><i class="fa-solid fa-house"></i> Home Page</button>
     </header>
     
