@@ -1,4 +1,5 @@
 # bot/handlers.py
+import os
 import datetime
 import asyncio
 import random
@@ -583,82 +584,118 @@ async def broadcast_prep(m: types.Message, state: FSMContext):
     await m.answer("📢 যে মেসেজটি ব্রডকাস্ট করতে চান সেটি পাঠান।\nবাতিল করতে /start দিন।")
 
 # ==========================================
-# 🛑 OPTIMIZED LIVE-PROGRESS BROADCAST CONTROLLER
+# 🛑 HIGH-SPEED ASYNC BROADCAST CONTROLLER (SEMAPHORE & RATE-LIMITED TASK RUNNER)
 # ==========================================
-@dp.message(AdminStates.waiting_for_bcast)
-async def execute_broadcast(m: types.Message, state: FSMContext):
-    await state.clear()
-    
-    # ডাটাবেসের মোট ইউজার সংখ্যা কাউন্ট করা হচ্ছে
-    total_users = await db.users.count_documents({})
-    
-    # অ্যাডমিনের কাছে প্রাথমিক স্ট্যাটাস মেসেজ পাঠানো হলো
-    status_msg = await m.answer("⏳ <b>Broadcasting initialized... Preparing to send.</b>", parse_mode="HTML")
-    
-    kb = [[types.InlineKeyboardButton(text="🎬 ওপেন মুভি অ্যাপ", web_app=types.WebAppInfo(url=APP_URL))]]
-    markup = types.InlineKeyboardMarkup(inline_keyboard=kb)
-    
-    success = 0
-    failed = 0
-    total_checked = 0
-    
-    async for u in db.users.find():
-        user_id = u['user_id']
-        total_checked += 1
-        
+SEMAPHORE = asyncio.Semaphore(25) # টেলিগ্রামে একই সাথে সর্বোচ্চ ২৫টি সমান্তরাল রিকোয়েস্ট যাবে
+
+async def broadcast_single_worker(user_id, message, markup, progress_tracker, db):
+    async with SEMAPHORE:
         try:
             # মেসেজটি ইউজারের কাছে কপি করা হচ্ছে
-            await m.copy_to(chat_id=user_id, reply_markup=markup)
-            success += 1
+            await message.copy_to(chat_id=user_id, reply_markup=markup)
+            progress_tracker["success"] += 1
         except TelegramRetryAfter as e:
             # যদি টেলিগ্রাম থেকে রেট-লিমিট দেয়, তবে ডাইনামিকালি ওয়েট করে পুনরায় ট্রাই করবে
             await asyncio.sleep(e.retry_after)
             try:
-                await m.copy_to(chat_id=user_id, reply_markup=markup)
-                success += 1
+                await message.copy_to(chat_id=user_id, reply_markup=markup)
+                progress_tracker["success"] += 1
             except Exception:
-                failed += 1
+                progress_tracker["failed"] += 1
         except Exception:
             # যদি ইউজার বটটি ব্লক করে থাকে বা অ্যাকাউন্ট নিষ্ক্রিয় থাকে
-            failed += 1
-        
-        # টেলিগ্রামের এডিট লিমিট (Edit Rate Limit) ঠিক রাখতে প্রতি ৫০ জন ইউজার পর পর অগ্রগতি আপডেট করবে
-        if total_checked % 50 == 0 or total_checked == total_users:
-            percentage = int((total_checked / total_users) * 100)
-            progress_text = (
-                f"📢 <b>Broadcasting in Progress...</b>\n"
-                f"━━━━━━━━━━━━━━━━━━\n"
-                f"🟢 <b>Success:</b> <code>{success}</code>\n"
-                f"🔴 <b>Failed/Blocked:</b> <code>{failed}</code>\n"
-                f"👥 <b>Total processed:</b> <code>{total_checked}</code> / <code>{total_users}</code>\n"
-                f"📊 <b>Progress:</b> <code>{percentage}%</code>\n"
-                f"━━━━━━━━━━━━━━━━━━\n"
-                f"⏳ <i>Please do not send other commands while broadcasting...</i>"
-            )
+            # ডাটাবেসে তাকে নিষ্ক্রিয় চিহ্নিত করা হচ্ছে যেন পরবর্তীতে সময় নষ্ট না হয়
             try:
-                await bot.edit_message_text(
-                    chat_id=m.chat.id, 
-                    message_id=status_msg.message_id, 
-                    text=progress_text, 
-                    parse_mode="HTML"
-                )
-            except Exception:
+                await db.users.update_one({"user_id": user_id}, {"$set": {"active": False}})
+            except:
                 pass
-            
-        # টেলিগ্রাম ফ্লাডিং এড়াতে সামান্য বিরতি
-        await asyncio.sleep(0.04)
+            progress_tracker["failed"] += 1
+        finally:
+            progress_tracker["total_checked"] += 1
+
+async def broadcast_status_updater(status_msg, total_users, progress_tracker, admin_chat_id):
+    while progress_tracker["total_checked"] < total_users:
+        await asyncio.sleep(2.5) # প্রতি ২.৫ সেকেন্ড পরপর অ্যাডমিনকে প্রোগ্রেস দেখাবে (Edit Rate Limit সেফটি)
+        percentage = int((progress_tracker["total_checked"] / total_users) * 100)
+        progress_text = (
+            f"📢 <b>Broadcasting in Progress...</b>\n"
+            f"━━━━━━━━━━━━━━━━━━\n"
+            f"🟢 <b>Success:</b> <code>{progress_tracker['success']}</code>\n"
+            f"🔴 <b>Failed/Blocked:</b> <code>{progress_tracker['failed']}</code>\n"
+            f"👥 <b>Total processed:</b> <code>{progress_tracker['total_checked']}</code> / <code>{total_users}</code>\n"
+            f"📊 <b>Progress:</b> <code>{percentage}%</code>\n"
+            f"━━━━━━━━━━━━━━━━━━\n"
+            f"⏳ <i>Please do not send other commands while broadcasting...</i>"
+        )
+        try:
+            await bot.edit_message_text(
+                chat_id=admin_chat_id,
+                message_id=status_msg.message_id,
+                text=progress_text,
+                parse_mode="HTML"
+            )
+        except Exception:
+            pass
+
+@dp.message(AdminStates.waiting_for_bcast)
+async def execute_broadcast(m: types.Message, state: FSMContext):
+    await state.clear()
+    
+    # ডাটাবেসের মোট সক্রিয় ইউজার সংখ্যা কাউন্ট করা হচ্ছে (active != False)
+    total_users = await db.users.count_documents({"active": {"$ne": False}})
+    if total_users == 0:
+        return await m.answer("⚠️ ডাটাবেসে কোনো সক্রিয় ইউজার পাওয়া যায়নি!")
+    
+    # অ্যাডমিনের কাছে প্রাথমিক স্ট্যাটাস মেসেজ পাঠানো হলো
+    status_msg = await m.answer("⏳ <b>Broadcasting initialized... Preparing parallel workers.</b>", parse_mode="HTML")
+    
+    kb = [[types.InlineKeyboardButton(text="🎬 ওপেন মুভি অ্যাপ", web_app=types.WebAppInfo(url=APP_URL))]]
+    markup = types.InlineKeyboardMarkup(inline_keyboard=kb)
+    
+    progress_tracker = {"success": 0, "failed": 0, "total_checked": 0}
+    
+    # ব্যাকগ্রাউন্ড আপডেট রিপোর্টার টাস্ক চালু করা হলো
+    update_task = asyncio.create_task(
+        broadcast_status_updater(status_msg, total_users, progress_tracker, m.chat.id)
+    )
+    
+    tasks = []
+    async for u in db.users.find({"active": {"$ne": False}}, {"user_id": 1}):
+        user_id = u['user_id']
+        # টাস্ক তৈরি করে সাথে সাথে ব্যাকগ্রাউন্ডে ইনজেক্ট করা হচ্ছে
+        task = asyncio.create_task(
+            broadcast_single_worker(user_id, m, markup, progress_tracker, db)
+        )
+        tasks.append(task)
         
+        # প্রতি সেকেন্ডে প্রায় ৩০টি মেসেজের স্পিড বজায় রাখতে ০.০৩৩ সেকেন্ড ডিলে
+        await asyncio.sleep(0.033)
+        
+    # সমস্ত টাস্ক রান হওয়া শেষ হওয়া পর্যন্ত অপেক্ষা করা হচ্ছে
+    await asyncio.gather(*tasks)
+    
+    # ব্যাকগ্রাউন্ড আপডেট টাস্কটি স্টপ করে দেওয়া হলো
+    update_task.cancel()
+    
     # ব্রডকাস্ট সম্পন্ন হওয়ার চূড়ান্ত মেসেজ
     final_text = (
         f"✅ <b>Broadcasting Completed!</b>\n"
         f"━━━━━━━━━━━━━━━━━━\n"
-        f"🟢 <b>Successfully Sent:</b> <code>{success}</code>\n"
-        f"🔴 <b>Failed (Blocked/Inactive):</b> <code>{failed}</code>\n"
-        f"👥 <b>Total Users in Database:</b> <code>{total_users}</code>\n"
+        f"🟢 <b>Successfully Sent:</b> <code>{progress_tracker['success']}</code>\n"
+        f"🔴 <b>Failed (Blocked/Inactive):</b> <code>{progress_tracker['failed']}</code>\n"
+        f"👥 <b>Total Active Users:</b> <code>{total_users}</code>\n"
         f"━━━━━━━━━━━━━━━━━━\n"
         f"📢 <i>All active users have received your broadcast!</i>"
     )
-    await bot.send_message(m.chat.id, final_text, parse_mode="HTML")
+    try:
+        await bot.edit_message_text(
+            chat_id=m.chat.id, 
+            message_id=status_msg.message_id, 
+            text=final_text, 
+            parse_mode="HTML"
+        )
+    except Exception:
+        await bot.send_message(m.chat.id, final_text, parse_mode="HTML")
 
 @dp.message(Command("addreply"))
 async def add_keyword_reply(m: types.Message):
@@ -795,12 +832,11 @@ async def group_request_responder(m: types.Message):
     bot_info = await bot.get_me()
     bot_username = bot_info.username
     
-    # ⚠️ ১. ডাইনামিক কড়াকড়ি স্প্যাম-লিংক প্রোটেকশন (নন-অ্যাডমিন লিংক ডিটেক্টর ও র্যান্ডম রোস্টিং)
+    # ⚠️ ১. ডাইনামিক কড়াকড়ি... স্প্যাম-লিংক প্রোটেকশন
     if m.from_user.id not in admin_cache:
         user_text_lower = user_text.lower()
         is_unauthorized_link = False
         
-        # মেসেজে কোনো লিংক টাইপ টেক্সট বা এনটিটি আছে কি না চেক করা হচ্ছে
         if any(x in user_text_lower for x in ["http://", "https://", "t.me/", "joinchat", "bit.ly"]):
             is_unauthorized_link = True
         elif m.entities:
@@ -811,10 +847,7 @@ async def group_request_responder(m: types.Message):
                     
         if is_unauthorized_link:
             try:
-                # ক. গ্রুপ থেকে ফালতু লিংকটি সাথে সাথে ডিলিট করে দেওয়া হলো
                 await bot.delete_message(chat_id=m.chat.id, message_id=m.message_id)
-                
-                # খ. কড়া ভাষায় স্প্যামারকে খাঁটি বাংলা রোস্টিং করা হচ্ছে (m.answer এর পরিবর্তে সরাসরি bot.send_message ব্যবহার করা হলো)
                 escaped_name = html.escape(m.from_user.first_name or "User")
                 roast_replies = [
                     f"🚨 <b>ওই বলদ {escaped_name}!</b> এটা কি তোর বাপের জায়গা পাইছিস যে এখানে লিংক শেয়ার করতেছিস? যা ভাগ এখান থেকে! 😡",
@@ -823,35 +856,27 @@ async def group_request_responder(m: types.Message):
                     f"🚨 <b>তোর বাপের রাজত্ব পাইছিস {escaped_name}?</b> গ্রুপে পারমিশন ছাড়া লিংক শেয়ার করা একদম নিষেধ! বেশি পন্ডিতি করলে ডিরেক্ট ব্যান করে দেব! 😡🔥"
                 ]
                 roast_text = random.choice(roast_replies)
-                
-                # original message ডিলিট হওয়ার পরও যেন মেসেজ ১০০% শো করে সেজন্য bot.send_message ব্যবহার করা হয়েছে
                 sent_warn = await bot.send_message(chat_id=m.chat.id, text=roast_text, parse_mode="HTML")
-                
-                # গ. গ্রুপের সৌন্দর্য রক্ষার্থে বটের কড়া ওয়ার্নিং মেসেজটি ২০ সেকেন্ড পর স্বয়ংক্রিয়ভাবে মুছে যাবে (নন-ব্লকিং)
                 asyncio.create_task(delete_after_delay(m.chat.id, sent_warn.message_id, 20))
                 return
             except Exception as e:
                 logger.error(f"Savage link moderator error: {e}")
 
-    # ক্যাজুয়াল বা সাধারণ চ্যাট ফিল্টার (যা মুভি সার্চ ট্রিগার করবে না)
     casual_words = {
         "hi", "hello", "hey", "bhai", "bro", "ভাই", "আপু", "হেই", "হাই", "হ্যালো", 
         "কেমন", "আছ", "अच्छा", "ধন্যবাদ", "thanks", "thank", "ok", "ওকে", "yes", "no",
         "কেমন আছেন", "কেমন আছো", "কি খবর", "পাবো", "পাব", "হবে", "আছে", "চোদ", "বাল", "চুদি"
     }
     
-    # যদি মেসেজের সব শব্দগুলোই ক্যাজুয়াল শব্দ হয়, তবে ডাটাবেস সার্চ স্কিপ করবে
     user_text_clean = user_text.lower().strip()
     words = set(user_text_clean.split())
     
-    # ১. প্রথমে চেক করবে মেসেজটি অত্যন্ত ছোট (২ অক্ষরের কম) বা সম্পূর্ণ ক্যাজুয়াল কি না
     is_casual_message = (
         len(user_text_clean) < 3 
         or user_text_clean in casual_words
         or words.issubset(casual_words)
     )
 
-    # ২.২. প্রথমে গ্রুপে কাস্টম কিওয়ার্ড সার্চ করব (অ্যাডমিনদের সেট করা কাস্টম কিওয়ার্ড)
     is_keyword_match = False
     matched_reply = ""
     for kw, rep_msg in keyword_replies_cache.items():
@@ -861,23 +886,18 @@ async def group_request_responder(m: types.Message):
             break
             
     if is_keyword_match:
-        # কাস্টম কিওয়ার্ড রিপ্লাই গ্রুপে পাঠানো হচ্ছে
         sent_kw_msg = await m.reply(matched_reply, parse_mode="HTML")
-        # এটিও ৫ মিনিট পর অটো-ডিলিট হবে গ্রুপ ফ্রেশ রাখতে
         asyncio.create_task(delete_after_delay(m.chat.id, sent_kw_msg.message_id, 300))
         return
 
     found_movie = None
     if not is_casual_message:
-        # ৩. শুধুমাত্র রিয়েল মুভি রিকোয়েস্ট হলে ডাটাবেসে ফাস্ট স্মার্ট সার্চ করবে (সম্পূর্ণ ফ্রী)
         found_movie = await smart_search(db, user_text)
     
     if found_movie:
-        # মুভিটি পাওয়া গেছে! ১-ক্লিক ওয়াচ লিঙ্কসহ গ্রুপে রিপ্লাই দেওয়া হচ্ছে
         bot_link = f"https://t.me/{bot_username}?start=new"
         kb = [[types.InlineKeyboardButton(text="🎬 WATCH / DOWNLOAD NOW", url=bot_link)]]
         markup = types.InlineKeyboardMarkup(inline_keyboard=kb)
-        
         escaped_name = html.escape(m.from_user.first_name or "User")
         text = (
             f"🍿 <b>Hey {escaped_name}!</b>\n\n"
@@ -885,14 +905,10 @@ async def group_request_responder(m: types.Message):
             f"সেটি আমাদের মিনি-অ্যাপে অলরেডি আপলোড করা আছে! 😍\n\n"
             f"👇 নিচের বাটনে ক্লিক করে সরাসরি আমাদের বটে গিয়ে দেখে নিন বা ডাউনলোড করুন।"
         )
-        # গ্রুপে পাঠানো মুভি রিপ্লাই মেসেজ
         sent_msg = await m.reply(text, reply_markup=markup, parse_mode="HTML")
-        
-        # গ্রুপ পরিষ্কার রাখতে মুভিটি পাওয়ার ৫ মিনিট (৩০০ সেকেন্ড) পর মেসেজটি অটো-ডিলিট হয়ে যাবে
         asyncio.create_task(delete_after_delay(m.chat.id, sent_msg.message_id, 300))
         return
         
-    # ৪. মুভি পাওয়া যায়নি। মায়াকে মেনশন বা মায়া ডাকলে এআই চালু হবে (খরচ নিয়ন্ত্রণে রাখতে)
     is_mentioned = (
         f"@{bot_username}" in user_text 
         or "maya" in user_text.lower() 
@@ -906,18 +922,13 @@ async def group_request_responder(m: types.Message):
                 f"The user '{m.from_user.first_name}' is asking for a movie in our request group. "
                 f"We searched our database, and the movie is NOT available. "
                 f"Write a very polite, sweet, and comforting reply in Bangladeshi Bengali. "
-                f"Explain that we don't have this movie yet (or it might not be released yet), "
+                f"Explain that we don't have this movie yet, "
                 f"and tell them they can request it in our bot or wait, and we will upload it soon! "
                 f"Keep the reply short, friendly, and helpful. User's query: '{user_text}'"
             )
-            # গ্রুপে চ্যাট মেমোরি জমে করাপশন এড়াতে save_history=False রাখা হয়েছে
             reply = await get_smart_reply(ai_prompt, m.from_user.first_name, db, user_id=m.from_user.id, save_history=False)
             await bot.delete_message(m.chat.id, status_msg.message_id)
-            
-            # গ্রুপে পাঠানো মায়ার এআই মেসেজ
             sent_ai_reply = await m.reply(reply, parse_mode="HTML")
-            
-            # গ্রুপ পরিষ্কার রাখতে ৫ মিনিট (৩০০ সেকেন্ড) পর মায়ার এআই উত্তরটিও ডিলিট হয়ে যাবে
             asyncio.create_task(delete_after_delay(m.chat.id, sent_ai_reply.message_id, 300))
         except Exception as e:
             try: await bot.delete_message(m.chat.id, status_msg.message_id)
