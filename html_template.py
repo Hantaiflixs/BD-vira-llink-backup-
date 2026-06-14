@@ -23,7 +23,7 @@ HTML_CODE = r"""
         .home-btn:active { transform: scale(0.95); background: rgba(59, 130, 246, 0.2); }
 
         .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; background: rgba(15, 23, 42, 0.98); backdrop-filter: blur(15px); border-top: 1px solid #334155; display: flex; justify-content: space-around; align-items: center; padding: 10px 0; z-index: 2000; padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
-        .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; color: #94a3b8; font-size: 11px; font-weight: bold; cursor: pointer; transition: 0.2s; width: 20%; gap: 4px; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; color: #94a3b8; font-size: 11px; font-weight: bold; cursor: pointer; transition: 0.2s; width: 25%; gap: 4px; }
         .nav-item i { font-size: 20px; transition: transform 0.2s; }
         .nav-item.active { color: #38bdf8; }
         .nav-item.active i { transform: scale(1.15); }
@@ -318,10 +318,6 @@ HTML_CODE = r"""
         <div class="nav-item" id="navSearch" onclick="focusSearch()">
             <i class="fa-solid fa-magnifying-glass"></i>
             <span>Search</span>
-        </div>
-        <div class="nav-item" id="navUpcoming" onclick="window.location.href='/upcoming'">
-            <i class="fa-solid fa-calendar-days"></i>
-            <span>Upcoming</span>
         </div>
         <div class="nav-item" id="navVip" onclick="openVipModal()">
             <i class="fa-solid fa-gem"></i>
@@ -643,7 +639,7 @@ HTML_CODE = r"""
 
         function toggleMenu(e) { 
             e.stopPropagation(); 
-            setNavActive(4);
+            setNavActive(3);
             const m = document.getElementById('dropdownMenu'); 
             m.style.display = m.style.display === 'block' ? 'none' : 'block'; 
         }
@@ -676,7 +672,7 @@ HTML_CODE = r"""
         }
         
         function openVipModal() { 
-            setNavActive(3);
+            setNavActive(2);
             switchVipModalTab('vip');
             document.getElementById('vipModal').style.display = 'flex'; 
             history.pushState({modal: 'vipModal'}, "");
