@@ -1260,22 +1260,25 @@ HTML_CODE = r"""
             
             const btn = document.getElementById('dlClickBtn');
             btn.disabled = true; 
-            let timeLeft = AD_WAIT_TIME; 
             btn.style.background = "#475569";
             
+            if (dlTimerInterval) clearInterval(dlTimerInterval);
+            
             dlTimerInterval = setInterval(() => {
-                timeLeft--; 
-                if(timeLeft > 0) {
-                    btn.innerText = `⏳ Please wait... (${timeLeft}s)`;
+                const elapsed = Date.now() - linkOpenedAt;
+                const remaining = Math.ceil((AD_WAIT_TIME * 1000 - elapsed) / 1000);
+                
+                if (remaining > 0) {
+                    btn.innerText = `⏳ Please wait... (${remaining}s)`;
                 } else {
                     clearInterval(dlTimerInterval);
-                    if(isWaitingForReturn) {
+                    if (isWaitingForReturn) {
                         isWaitingForReturn = false;
                         document.getElementById('directLinkModal').style.display = 'none';
                         if (currentFileId) sendFileAndClose(currentFileId);
                     }
                 }
-            }, 1000);
+            }, 200); 
         }
 
         let coinLinkOpenedAt = 0; 
@@ -1299,22 +1302,25 @@ HTML_CODE = r"""
             
             const btn = document.getElementById('coinAdBtn');
             btn.disabled = true; 
-            let timeLeft = AD_WAIT_TIME; 
             btn.style.background = "#475569";
             
+            if (coinTimerInterval) clearInterval(coinTimerInterval);
+            
             coinTimerInterval = setInterval(() => {
-                timeLeft--; 
-                if(timeLeft > 0) {
-                    btn.innerHTML = `<i class="fa-solid fa-play"></i> Please wait... (${timeLeft}s)`;
+                const elapsed = Date.now() - coinLinkOpenedAt;
+                const remaining = Math.ceil((AD_WAIT_TIME * 1000 - elapsed) / 1000);
+                
+                if (remaining > 0) {
+                    btn.innerHTML = `<i class="fa-solid fa-play"></i> Please wait... (${remaining}s)`;
                 } else {
                     clearInterval(coinTimerInterval);
-                    if(isWaitingForCoinReturn) {
+                    if (isWaitingForCoinReturn) {
                         isWaitingForCoinReturn = false;
                         claimAdCoin();
                         resetCoinButton();
                     }
                 }
-            }, 1000);
+            }, 200);
         }
 
         document.addEventListener("visibilitychange", function() {
@@ -1322,28 +1328,32 @@ HTML_CODE = r"""
                 let now = Date.now();
                 
                 if (isWaitingForReturn) {
-                    isWaitingForReturn = false; 
-                    clearInterval(dlTimerInterval);
-                    
                     let elapsedSeconds = (now - linkOpenedAt) / 1000;
-                    if (elapsedSeconds < AD_WAIT_TIME - 1) { 
-                        tg.showAlert(`⚠️ You must wait full ${AD_WAIT_TIME} seconds on the link.`);
+                    if (elapsedSeconds < AD_WAIT_TIME - 0.5) { 
+                        let remaining = Math.ceil(AD_WAIT_TIME - elapsedSeconds);
+                        tg.showAlert(`⚠️ You must wait full ${AD_WAIT_TIME} seconds on the link. ${remaining}s remaining.`);
+                        isWaitingForReturn = false;
+                        clearInterval(dlTimerInterval);
                         resetDlButton();
                     } else { 
+                        isWaitingForReturn = false; 
+                        clearInterval(dlTimerInterval);
                         document.getElementById('directLinkModal').style.display = 'none'; 
                         if (currentFileId) sendFileAndClose(currentFileId); 
                     }
                 }
                 
                 if (isWaitingForCoinReturn) {
-                    isWaitingForCoinReturn = false; 
-                    clearInterval(coinTimerInterval);
-                    
                     let elapsedSeconds = (now - coinLinkOpenedAt) / 1000;
-                    if (elapsedSeconds < AD_WAIT_TIME - 1) {
-                        tg.showAlert(`⚠️ You must wait full ${AD_WAIT_TIME} seconds on the link.`);
+                    if (elapsedSeconds < AD_WAIT_TIME - 0.5) {
+                        let remaining = Math.ceil(AD_WAIT_TIME - elapsedSeconds);
+                        tg.showAlert(`⚠️ You must wait full ${AD_WAIT_TIME} seconds on the link. ${remaining}s remaining.`);
+                        isWaitingForCoinReturn = false;
+                        clearInterval(coinTimerInterval);
                         resetCoinButton();
                     } else { 
+                        isWaitingForCoinReturn = false; 
+                        clearInterval(coinTimerInterval);
                         claimAdCoin(); 
                         resetCoinButton();
                     }
