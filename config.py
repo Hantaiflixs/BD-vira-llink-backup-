@@ -21,13 +21,13 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 # কনফিগারেশন ভ্যারিয়েবলসমূহ
-TOKEN = "8228670087:AAEPLRqdkpbKOc0ZZoG02wpY1N7MoiH4fmo"                  
-API_ID = 19234664                              
-API_HASH = "29c2f3b3d115cf1b0231d816deb271f5"                
+TOKEN = "8756368847:AAGUAbieUC40Fm4axtSNUWGuOQtgUjbFZGU"                  
+API_ID = 28870226                              
+API_HASH = "a5b1ff3f75941649bf5bc159782f0f00"                
 SESSION_STRING = ""                            
 MONGO_URL = "mongodb+srv://manogog673:manogog673@cluster0.ot1qt.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"              
-OWNER_ID = 8058281460                           
-CHANNEL_ID = "-1003569770431"                   
+OWNER_ID = 7528643689                           
+CHANNEL_ID = "-1003655443965"                   
 ADMIN_PASS = "admin123"                        
 BOT_USERNAME = "MoviesLinkBD_Bot"                
 
