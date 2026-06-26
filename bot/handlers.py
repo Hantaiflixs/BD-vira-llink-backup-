@@ -114,11 +114,12 @@ async def start_cmd(message: types.Message, state: FSMContext):
 
         user_name = message.from_user.first_name or "User"
         user = {
-            "user_id": uid, "first_name": user_name, "joined_at": now, "refer_count": 0, "coins": 0, "vip_until": now - datetime.timedelta(days=1), "last_active": now
+            "user_id": uid, "first_name": user_name, "joined_at": now, "refer_count": 0, "coins": 0, "vip_until": now - datetime.timedelta(days=1), "last_active": now, "active": True
         }
         await db.users.insert_one(user)
     else:
-        await db.users.update_one({"user_id": uid}, {"$set": {"last_active": now}})
+        # পুরোনো ইউজার যদি আগে ব্লক করে থাকে, তাহলে স্টার্ট করার সাথে সাথে active ট্রু (True) করে রিসেট করা হবে
+        await db.users.update_one({"user_id": uid}, {"$set": {"last_active": now, "active": True}})
     
     # মেম্বারশিপ ও Gems এর ডাইনামিক স্ট্যাটাস
     is_vip = user.get("vip_until", now) > now
@@ -149,7 +150,7 @@ async def start_cmd(message: types.Message, state: FSMContext):
             "🔸 Payment: <code>/setbkash Number</code> | <code>/setnagad Number</code>\n"
             "🔸 Protection: <code>/protect on/off</code> | <code>/settime [minutes]</code>\n"
             "🔸 Ad Settings: <code>/setadtime [seconds]</code>\n" 
-            "🔸 Stats & Broadcast: <code>/stats</code> | <code>/cast</code>\n"
+            "🔸 Stats & Broadcast: <code>/stats</code> | <code>/cast</code> | <code>/cleanblocked</code>\n"
             "🔸 Delete Video: <code>/delmovie title</code> | <code>/delallmovies</code>\n"
             "🔸 User Controls: <code>/ban ID</code> | <code>/unban ID</code>\n"
             "🔸 Points & VIP: <code>/addcoin ID amount</code> | <code>/addvip ID days</code>\n\n"
@@ -455,15 +456,36 @@ async def del_all_movies_cmd(m: types.Message):
 @dp.message(Command("stats"))
 async def stats_cmd(m: types.Message):
     if m.from_user.id not in admin_cache: return
-    uc = await db.users.count_documents({})
+    
+    # 👥 ব্লকড/নিষ্ক্রিয় ইউজার এবং সক্রিয় ইউজার সংখ্যা স্পষ্টভাবে আলাদাভাবে কাউন্ট করা হচ্ছে
+    total_users = await db.users.count_documents({})
+    active_users = await db.users.count_documents({"active": {"$ne": False}})
+    blocked_users = total_users - active_users
+    
     mc = await db.movies.count_documents({})
     now = datetime.datetime.utcnow()
     today_start = datetime.datetime(now.year, now.month, now.day)
     new_users_today = await db.users.count_documents({"joined_at": {"$gte": today_start}})
     
-    text = (f"📊 <b>অ্যাডভান্সড স্ট্যাটাস:</b>\n\n👥 মোট ইউজার: <code>{uc}</code>\n🟢 আজকের নতুন ইউজার: <code>{new_users_today}</code>\n"
-            f"🎬 মোট ফাইল আপলোড: <code>{mc}</code>")
+    text = (
+        f"📊 <b>অ্যাডভান্সড স্ট্যাটাস:</b>\n\n"
+        f"👥 মোট রেজিস্টার্ড ইউজার: <code>{total_users}</code>\n"
+        f"🟢 মোট সক্রিয় ইউজার (ব্রডকাস্টযোগ্য): <code>{active_users}</code>\n"
+        f"🔴 ব্লকড/নিষ্ক্রিয় ইউজার: <code>{blocked_users}</code>\n"
+        f"✨ আজকের নতুন ইউজার: <code>{new_users_today}</code>\n"
+        f"🎬 মোট ফাইল আপলোড: <code>{mc}</code>"
+    )
     await m.answer(text, parse_mode="HTML")
+
+# 🗑 ব্লকড ইউজারদের ডাটাবেস থেকে স্থায়ীভাবে মুছে ফেলার নতুন কমান্ড
+@dp.message(Command("cleanblocked"), lambda m: m.from_user.id in admin_cache)
+async def clean_blocked_users_cmd(m: types.Message):
+    blocked_count = await db.users.count_documents({"active": False})
+    if blocked_count == 0:
+        return await m.answer("🎉 <b>ডাটাবেসে কোনো ব্লকড বা নিষ্ক্রিয় ইউজার পাওয়া যায়নি!</b>", parse_mode="HTML")
+        
+    result = await db.users.delete_many({"active": False})
+    await m.answer(f"🗑 <b>সফলভাবে {result.deleted_count} জন ব্লকড/নিষ্ক্রিয় ইউজারকে ডাটাবেস থেকে চিরতরে মুছে ফেলা হয়েছে!</b>", parse_mode="HTML")
 
 @dp.message(Command("ban"))
 async def ban_user_cmd(m: types.Message):
@@ -569,7 +591,7 @@ async def remove_coin_cmd(m: types.Message):
         amount = int(args[2])
         
         user = await db.users.find_one({"user_id": target_uid})
-        if not user: return await m.answer("⚠️ এই ইউজার ডাটাবেসে নেই।")
+        if not user: return await m.answer("⚠️ এই ইউজার ডাটাবেসে নেই。")
             
         await db.users.update_one({"user_id": target_uid}, {"$inc": {"coins": -amount}})
         await m.answer(f"❌ ইউজার <code>{target_uid}</code> থেকে <b>{amount} পয়েন্ট</b> কেটে নেওয়া হয়েছে!", parse_mode="HTML")
