@@ -956,7 +956,7 @@ async def group_request_responder(m: types.Message):
             except: pass
 
 # ==========================================
-# 🛑 VIDEO & PART MANUAL UPLOAD LOGIC
+# 🛑 VIDEO & PART MANUAL UPLOAD LOGIC (AUTO-ID SERIAL ADDED ON STANDALONE)
 # ==========================================
 @dp.message(StateFilter(None), F.content_type.in_({'video', 'document'}), lambda m: m.from_user.id in admin_cache)
 async def receive_movie_file(m: types.Message, state: FSMContext):
@@ -996,7 +996,7 @@ async def upload_new_cb(c: types.CallbackQuery, state: FSMContext):
 @dp.callback_query(F.data == "upload_part")
 async def upload_part_cb(c: types.CallbackQuery, state: FSMContext):
     await state.set_state(AdminStates.waiting_for_video_search)
-    await c.message.edit_text("✅ <b>নতুন পার্ট!</b>\n\nযে ভিডিওতে পার্টটি অ্যাড করতে চান, সেই <b>ভিডিওর নামের কয়েক অক্ষর</b> লিখে সার্চ করুন (যেমন: Fun Clip)।", parse_mode="HTML")
+    await c.message.edit_text("✅ <b>নতুন পার্ট!</b>\n\nযে ভিডিওতে পার্টটি অ্যাড করতে চান, সেই <b>ভিডিওর নামের কয়েকটি অক্ষর</b> লিখে সার্চ করুন (যেমন: Fun Clip)।", parse_mode="HTML")
 
 @dp.message(AdminStates.waiting_for_video_search, F.text)
 async def search_series_for_episode(m: types.Message, state: FSMContext):
@@ -1036,7 +1036,7 @@ async def finalize_new_episode(m: types.Message, state: FSMContext):
     title = data["title"]
     photo_id = data["photo_id"]
     
-    # স্বয়ংক্রিয় পরবর্তী পার্ট নাম্বার নির্ধারণ
+    # স্বয়ংক্রিয় পরবর্তী পার্ট নাম্বার নির্ধারণ (আইডি সহ নামের ম্যাচিং লজিক ১০০% সেফ)
     part_count = await db.movies.count_documents({"title": title})
     next_part = part_count + 1
     quality_str = f"Video Part {next_part} [{quality}]"
@@ -1200,7 +1200,7 @@ async def finalize_bulk_upload(c: types.CallbackQuery, state: FSMContext):
             "photo_id": photo_id, 
             "file_id": file_data["file_id"], 
             "file_type": file_data["file_type"],
-            "db_file_id": file_data.get("db_file_id"), 
+            "db_file_id": file_data["db_file_id"], 
             "db_photo_id": data.get("db_photo_id"),
             "clicks": 0, 
             "created_at": datetime.datetime.utcnow()
@@ -1269,7 +1269,7 @@ async def receive_movie_photo(m: types.Message, state: FSMContext):
         sent_photo = await m.answer_photo(FSInputFile(temp_out), caption="✅ <b>পোস্টার রেডি!</b>\nএবার ভিডিওর <b>টাইটেল (নাম)</b> লিখে পাঠান।", parse_mode="HTML")
         if not DB_CHANNEL_ID: photo_id = sent_photo.photo[-1].file_id
     else:
-        await m.answer("✅ পোস্টার পেয়েছি! এবার ভিডিওর <b>টাইটেল (নাম)</b> লিখে পাঠান।", parse_mode="HTML")
+        await m.answer("✅ পোস্টার পেয়েছি! এবার ভিডিওর <b>টাইটেল (নাম)</b> লিখে পাঠান。", parse_mode="HTML")
         
     await state.update_data(photo_id=photo_id, db_photo_id=db_photo_id)
     await state.set_state(AdminStates.waiting_for_title)
@@ -1284,6 +1284,7 @@ async def receive_movie_title(m: types.Message, state: FSMContext):
     await state.set_state(AdminStates.waiting_for_quality)
     await m.answer("✅ নাম সেভ হয়েছে! এবার ভিডিওর কোয়ালিটি বা সংক্ষিপ্ত বিবরণ দিন (যেমন: HD, Full HD বা 1080p)।", parse_mode="HTML")
 
+# ⚡ নতুন ইউনিক সিরিয়াল নাম্বার (ID) জেনারেটর কোড চূড়ান্তভাবে যুক্ত করা হলো
 @dp.message(AdminStates.waiting_for_quality, F.text)
 async def receive_movie_quality(m: types.Message, state: FSMContext):
     quality = m.text.strip()
@@ -1293,18 +1294,34 @@ async def receive_movie_quality(m: types.Message, state: FSMContext):
     title = data["title"]
     photo_id = data["photo_id"]
     
-    # নতুন সম্পূর্ণ নতুন ভিডিওর ১ম পার্ট হিসেবে 'Video Part 1' সেট হবে
+    # ⚡ ডাটাবেস থেকে ইউনিক অটো-ইনক্রিমেন্ট কাউন্টার চেক করা হচ্ছে
+    counter = await db.settings.find_one_and_update(
+        {"id": "movie_serial_counter"},
+        {"$inc": {"seq": 1}},
+        upsert=True,
+        return_document=True
+    )
+    
+    seq_id = counter.get("seq", 1001) if counter else 1001
+    
+    # প্রথম রান হলে ১০০০ থেকে শুরু হবে
+    if seq_id < 1001:
+        await db.settings.update_one({"id": "movie_serial_counter"}, {"$set": {"seq": 1001}})
+        seq_id = 1001
+        
+    # নামের সাথে ইউনিক আইডি যুক্ত করা হলো
+    final_title = f"{title} #{seq_id}"
     quality_str = f"Video Part 1 [{quality}]"
     
     await db.movies.insert_one({
-        "title": title, "quality": quality_str, "photo_id": photo_id, 
+        "title": final_title, "quality": quality_str, "photo_id": photo_id, 
         "file_id": data["file_id"], "file_type": data["file_type"],
         "db_file_id": data.get("db_file_id"), "db_photo_id": data.get("db_photo_id"),
         "clicks": 0, "created_at": datetime.datetime.utcnow()
     })
     clear_app_cache() 
     
-    await m.answer(f"🎉 <b>{title} [{quality_str}]</b> সফলভাবে অ্যাপে যুক্ত করা হয়েছে!", parse_mode="HTML")
+    await m.answer(f"🎉 <b>{final_title} [{quality_str}]</b> সফলভাবে অ্যাপে যুক্ত করা হয়েছে!", parse_mode="HTML")
 
     if CHANNEL_ID:
         try:
@@ -1315,7 +1332,7 @@ async def receive_movie_quality(m: types.Message, state: FSMContext):
                 [types.InlineKeyboardButton(text="♻️ REQUEST VIDEO ♻️", url=REQUEST_LINK)]
             ]
             markup = types.InlineKeyboardMarkup(inline_keyboard=kb)
-            caption = (f"🔥 <b>নতুন ভিডিও যুক্ত হয়েছে!</b>\n\n📌 <b>টাইটেল:</b> {title}\n🏷 <b>পার্ট:</b> {quality_str}\n\n👇 <i>বট থেকে...</i>")
+            caption = (f"🔥 <b>নতুন ভিডিও যুক্ত হয়েছে!</b>\n\n📌 <b>টাইটেল:</b> {final_title}\n🏷 <b>পার্ট:</b> {quality_str}\n\n👇 <i>বট থেকে...</i>")
             await bot.send_photo(chat_id=CHANNEL_ID, photo=photo_id, caption=caption, parse_mode="HTML", reply_markup=markup)
         except Exception: pass
 
