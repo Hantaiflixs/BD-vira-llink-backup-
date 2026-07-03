@@ -4,7 +4,7 @@ import json
 import random
 import aiohttp
 import html
-from fastapi import APIRouter, Depends, Body, HTTPException, status
+from fastapi import APIRouter, Depends, Body, HTTPException, status, BackgroundTasks
 from fastapi.responses import HTMLResponse, StreamingResponse
 from pydantic import BaseModel
 from bson import ObjectId
@@ -19,6 +19,23 @@ from helpers import validate_tg_data, verify_admin, format_views
 from html_template import HTML_CODE
 
 api_router = APIRouter()
+
+# ==========================================
+# ⚡ Global System Settings Memory Cache
+# ==========================================
+settings_cache = {}
+
+async def fetch_setting(setting_id: str):
+    """ডাটাবেসের রিকোয়েস্ট কমাতে সেটিংস ক্যাশ মেমোরি থেকে রিটার্ন করে"""
+    if setting_id in settings_cache:
+        return settings_cache[setting_id]
+    cfg = await db.settings.find_one({"id": setting_id})
+    settings_cache[setting_id] = cfg
+    return cfg
+
+def invalidate_settings_cache():
+    """সেটিংস আপডেট হলে মেমোরি ক্যাশ খালি করে"""
+    settings_cache.clear()
 
 # ==========================================
 # 🛑 Pydantic Models for API Requests
@@ -79,11 +96,11 @@ class ReviewModel(BaseModel):
 # ==========================================
 @api_router.get("/api/admin/sys_settings")
 async def get_sys_settings(auth: bool = Depends(verify_admin)):
-    cost_cfg = await db.settings.find_one({"id": "vip_cost"})
-    days_cfg = await db.settings.find_one({"id": "vip_days"})
-    unlock_cfg = await db.settings.find_one({"id": "unlock_hours"})
-    social_cfg = await db.settings.find_one({"id": "social_links"})
-    interval_cfg = await db.settings.find_one({"id": "ad_interval"}) 
+    cost_cfg = await fetch_setting("vip_cost")
+    days_cfg = await fetch_setting("vip_days")
+    unlock_cfg = await fetch_setting("unlock_hours")
+    social_cfg = await fetch_setting("social_links")
+    interval_cfg = await fetch_setting("ad_interval") 
     
     return {
         "vip_cost": cost_cfg["amount"] if cost_cfg else 30,
@@ -103,6 +120,7 @@ async def save_sys_settings(data: dict = Body(...), auth: bool = Depends(verify_
     social_links = data.get("social_links", {})
     await db.settings.update_one({"id": "social_links"}, {"$set": {"links": social_links}}, upsert=True)
     
+    invalidate_settings_cache()
     clear_app_cache()
     return {"ok": True}
 
@@ -409,7 +427,7 @@ async def web_admin_panel(auth: bool = Depends(verify_admin)):
             let searchTimeout = null;
             let categoryChart = null;
 
-            function switchAdminTab(tabId) {
+            async function switchAdminTab(tabId) {
                 document.querySelectorAll('.admin-tab-content').forEach(content => content.classList.add('hidden'));
                 document.getElementById('adminTab-' + tabId).classList.remove('hidden');
                 
@@ -759,7 +777,7 @@ async def web_admin_panel(auth: bool = Depends(verify_admin)):
             }
 
             async function updateRequestStatus(id, newStatus) {
-                await fetch(`/api/admin/requests/${id}`, {
+                await fetch(`/api/requests/${id}`, {
                     method: 'PUT',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({status: newStatus})
@@ -794,15 +812,16 @@ async def web_admin_panel(auth: bool = Depends(verify_admin)):
 # ==========================================
 @api_router.get("/", response_class=HTMLResponse)
 async def web_ui():
-    tg_cfg = await db.settings.find_one({"id": "link_tg"})
-    support_cfg = await db.settings.find_one({"id": "link_support"})
-    b18_cfg = await db.settings.find_one({"id": "link_18"})
-    dl_cfg = await db.settings.find_one({"id": "direct_links"})
+    # ডাটাবেসের জ্যাম কমাতে গ্লোবাল র‍্যাম ক্যাশ ব্যবহার করা হয়েছে
+    tg_cfg = await fetch_setting("link_tg")
+    support_cfg = await fetch_setting("link_support")
+    b18_cfg = await fetch_setting("link_18")
+    dl_cfg = await fetch_setting("direct_links")
+    ad_time_cfg = await fetch_setting("ad_time")
+    interval_cfg = await fetch_setting("ad_interval")
+    social_cfg = await fetch_setting("social_links")
     
-    ad_time_cfg = await db.settings.find_one({"id": "ad_time"})
     ad_wait_seconds = ad_time_cfg['seconds'] if ad_time_cfg else 10
-    
-    interval_cfg = await db.settings.find_one({"id": "ad_interval"})
     ad_interval = interval_cfg["interval"] if interval_cfg else 3
     
     tg_url = tg_cfg['url'] if tg_cfg else "https://t.me/MovieeBD"
@@ -811,7 +830,6 @@ async def web_ui():
     direct_links = dl_cfg.get('links', []) if dl_cfg else []
     dl_json = json.dumps(direct_links)
     
-    social_cfg = await db.settings.find_one({"id": "social_links"})
     social_links_dict = social_cfg.get('links', {}) if social_cfg else {}
     social_json = json.dumps(social_links_dict)
 
@@ -845,8 +863,8 @@ async def get_user_info(uid: int):
     user = await db.users.find_one({"user_id": uid})
     is_admin = uid in admin_cache
     
-    cost_cfg = await db.settings.find_one({"id": "vip_cost"})
-    days_cfg = await db.settings.find_one({"id": "vip_days"})
+    cost_cfg = await fetch_setting("vip_cost")
+    days_cfg = await fetch_setting("vip_days")
     
     cost = cost_cfg["amount"] if cost_cfg else 30
     days = days_cfg["days"] if days_cfg else 1
@@ -872,8 +890,8 @@ async def buy_vip_api(d: UserActionModel):
     user = await db.users.find_one({"user_id": d.uid})
     coins = user.get("coins", 0)
     
-    cost_cfg = await db.settings.find_one({"id": "vip_cost"})
-    days_cfg = await db.settings.find_one({"id": "vip_days"})
+    cost_cfg = await fetch_setting("vip_cost")
+    days_cfg = await fetch_setting("vip_days")
     cost = cost_cfg["amount"] if cost_cfg else 30
     days = days_cfg["days"] if days_cfg else 1
     
@@ -893,7 +911,7 @@ async def buy_vip_api(d: UserActionModel):
 @api_router.get("/api/trending")
 async def trending_movies(uid: int = 0):
     unlocked_ids = []
-    cfg_unlock = await db.settings.find_one({"id": "unlock_hours"})
+    cfg_unlock = await fetch_setting("unlock_hours")
     unlock_hrs = cfg_unlock['hours'] if cfg_unlock else 24
     if uid != 0:
         time_limit = datetime.datetime.utcnow() - datetime.timedelta(hours=unlock_hrs)
@@ -948,7 +966,7 @@ async def trending_movies(uid: int = 0):
 @api_router.get("/api/list")
 async def list_movies(page: int = 1, q: str = "", uid: int = 0):
     unlocked_ids = []
-    cfg_unlock = await db.settings.find_one({"id": "unlock_hours"})
+    cfg_unlock = await fetch_setting("unlock_hours")
     unlock_hrs = cfg_unlock['hours'] if cfg_unlock else 24
     if uid != 0:
         time_limit = datetime.datetime.utcnow() - datetime.timedelta(hours=unlock_hrs)
@@ -961,7 +979,8 @@ async def list_movies(page: int = 1, q: str = "", uid: int = 0):
         movies = data["movies"]
         total_pages = data["total_pages"]
     else:
-        limit = 100  
+        # ২০,০০০ ইউজারের জ্যাম এড়াতে পেজ সাইজ কমিয়ে ১৫ করা হয়েছে
+        limit = 15  
         skip = (page - 1) * limit
         match_stage = {}
         if q: match_stage["title"] = {"$regex": q, "$options": "i"}
@@ -984,7 +1003,7 @@ async def list_movies(page: int = 1, q: str = "", uid: int = 0):
         for f in m["files"]: f["is_unlocked"] = f["id"] in unlocked_ids
     return {"movies": movies, "total_pages": total_pages}
 
-# 🛑 AUTO-REPAIRING SYSTEM FOR PORTED THUMBNAILS (FIXED FOR AIOGRAM 3)
+# 🛑 AUTO-REPAIRING SYSTEM FOR PORTED THUMBNAILS (FIXED FOR AIOGRAM 3 & CDN CACHED)
 @api_router.get("/api/image/{photo_id}")
 async def get_image(photo_id: str):
     try:
@@ -998,7 +1017,6 @@ async def get_image(photo_id: str):
             actual_file_id = photo_id
             db_msg_id = None
             
-            # যদি সরাসরি db_ দিয়ে শুরু হয় (যেমন db_123)
             if photo_id.startswith("db_"):
                 parts = photo_id.split("_")
                 if len(parts) > 1 and parts[1].isdigit():
@@ -1007,39 +1025,28 @@ async def get_image(photo_id: str):
                 if movie and movie.get("photo_id"): 
                     actual_file_id = movie["photo_id"]
             else:
-                # যদি সরাসরি ফাইল আইডিটি রিকোয়েস্ট করা হয়, তবে ডাটাবেস থেকে সেই ভিডিওটি খুঁজব
                 movie = await db.movies.find_one({"photo_id": photo_id})
                 if movie and movie.get("db_photo_id"):
                     db_msg_id = movie["db_photo_id"]
             
             try:
-                # ১. প্রথমে সরাসরি ফাইল আইডি দিয়ে চেষ্টা করব
                 file_path = (await bot.get_file(actual_file_id)).file_path
             except Exception:
-                # ২. যদি এরর আসে (অর্থাৎ ফাইল আইডিটি অন্য বটের হওয়ায় ইনভ্যালিড), 
-                # তবে ডাটাবেস থেকে সেই ভিডিওটি খুঁজে বের করে চ্যানেলের db_photo_id দিয়ে অটো-রিপেয়ার করব!
                 if db_msg_id and DB_CHANNEL_ID:
                     try:
-                        # Aiogram 3-তে forward_message ব্যবহার করা হলো যা একটি Message অবজেক্ট রিটার্ন করে
                         forwarded = await bot.forward_message(
                             chat_id=DB_CHANNEL_ID,
                             from_chat_id=DB_CHANNEL_ID,
                             message_id=db_msg_id
                         )
                         
-                        # নতুন বটের ফাইল আইডি সংগ্রহ করা হচ্ছে
                         if forwarded.photo:
                             new_photo_id = forwarded.photo[-1].file_id
-                            
-                            # ফরওয়ার্ড করা ডুপ্লিকেট মেসেজটি ডিলিট করে দেওয়া হলো
                             await bot.delete_message(chat_id=DB_CHANNEL_ID, message_id=forwarded.message_id)
-                            
-                            # ডাটাবেসে নতুন বটের সচল file_id আপডেট করা হচ্ছে
                             await db.movies.update_many(
                                 {"db_photo_id": db_msg_id}, 
                                 {"$set": {"photo_id": new_photo_id}}
                             )
-                            
                             file_path = (await bot.get_file(new_photo_id)).file_path
                     except Exception as err:
                         logger.error(f"Image auto-repair failed for message {db_msg_id}: {err}")
@@ -1053,26 +1060,37 @@ async def get_image(photo_id: str):
             
         if not file_path: return {"error": "not found"}
         file_url = f"https://api.telegram.org/file/bot{TOKEN}/{file_path}"
+        
         async def stream_image():
             async with aiohttp.ClientSession() as session:
                 async with session.get(file_url) as resp:
                     if resp.status != 200:
-                        # যদি টেলিগ্রাম ৪০৪ এরর দেয় (অর্থাৎ ফাইল পাথ এক্সপায়ার হয়ে গেছে), তবে ক্যাশ ডিলিট করে দেব
                         await db.file_cache.delete_one({"photo_id": photo_id})
                         yield b""
                         return
                     async for chunk in resp.content.iter_chunked(1024): yield chunk
-        return StreamingResponse(stream_image(), media_type="image/jpeg")
+
+        # ক্লাউডফ্লেয়ার (Cloudflare CDN) এবং ব্রাউজারকে ১ বছর ক্যাশ করার সিগন্যাল প্রদান (ব্যান্ডউইথ বাঁচাবে)
+        headers = {
+            "Cache-Control": "public, max-age=31536000, immutable",
+            "Access-Control-Allow-Origin": "*"
+        }
+        return StreamingResponse(stream_image(), media_type="image/jpeg", headers=headers)
     except Exception as e: 
         logger.error(f"get_image error: {e}")
         return {"error": "error"}
 
-@api_router.post("/api/view_movie")
-async def increment_movie_view(d: ViewRequestModel):
+async def db_increment_view(title: str):
+    """ব্যাকগ্রাউন্ডে নন-ব্লকিং উপায়ে ভিউ ট্র্যাক করার প্রসেস"""
     try:
-        await db.movies.update_many({"title": d.title}, {"$inc": {"clicks": 1}})
-        await db.movie_views.insert_one({"title": d.title, "viewed_at": datetime.datetime.utcnow()})
+        await db.movies.update_many({"title": title}, {"$inc": {"clicks": 1}})
+        await db.movie_views.insert_one({"title": title, "viewed_at": datetime.datetime.utcnow()})
     except Exception: pass
+
+@api_router.post("/api/view_movie")
+async def increment_movie_view(d: ViewRequestModel, background_tasks: BackgroundTasks):
+    # ডাটাবেস রাইট রিকোয়েস্টকে ব্যাকগ্রাউন্ড টাস্কে পুশ করা হলো, ইউজার কোনো ল্যাগ ছাড়াই রেসপন্স পাবে
+    background_tasks.add_task(db_increment_view, d.title)
     return {"ok": True}
 
 # ==========================================
@@ -1088,9 +1106,9 @@ async def send_file(d: SendRequestModel):
             user = await db.users.find_one({"user_id": d.userId})
             is_vip = user and user.get("vip_until", now) > now
             
-            time_cfg = await db.settings.find_one({"id": "del_time"})
+            time_cfg = await fetch_setting("del_time")
             del_minutes = time_cfg['minutes'] if time_cfg else 60
-            protect_cfg = await db.settings.find_one({"id": "protect_content"})
+            protect_cfg = await fetch_setting("protect_content")
             is_protected = protect_cfg['status'] if protect_cfg else True
             
             # প্রিমিয়াম এআই ডাইনামিক মেসেজ লেআউট (টপ-লেভেল ভাইরালিটি)
@@ -1427,7 +1445,6 @@ async def get_analytics(auth: bool = Depends(verify_admin)):
     a_t = await db.user_unlocks.distinct("user_id", {"unlocked_at": {"$gte": t_start}})
     a_w = await db.user_unlocks.distinct("user_id", {"unlocked_at": {"$gte": seven_d}})
     
-    # ক্যাটাগরির পরিবর্তে সবচেয়ে জনপ্রিয় ৫টি ভিডিও এর ভিউ স্যাম্পল (Top Videos Analytic)
     top_v = await db.movies.aggregate([
         {"$group": {"_id": "$title", "total_views": {"$sum": "$clicks"}}},
         {"$sort": {"total_views": -1}},
