@@ -161,6 +161,17 @@ HTML_CODE = r"""
         .card { background: transparent; overflow: hidden; cursor: pointer; transition: transform 0.2s; border-radius: 0; transform: translateZ(0); will-change: transform; }
         .card:active { transform: scale(0.98); }
         
+        /* ⚡ শিমার লোডিং অ্যানিমেশন ডিজাইন (Layout Shift বন্ধ করতে) */
+        .shimmer-placeholder {
+            background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+            background-size: 200% 100%;
+            animation: loading-shimmer 1.5s infinite;
+        }
+        @keyframes loading-shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
         .post-content { position: relative; padding: 3px; border-radius: 12px; background: linear-gradient(45deg, #ff0000, #ff7300, #fffb00, #48ff00, #00ffd5, #002bff, #7a00ff, #ff00c8, #ff0000); background-size: 200%; }
         .post-content img { width: 100%; aspect-ratio: 16/9; height: auto; object-fit: cover; display: block; border-radius: 10px; }
         
@@ -173,10 +184,14 @@ HTML_CODE = r"""
         .view-badge { bottom: 10px; left: 10px; background: rgba(0,0,0,0.75); }
         .ep-badge { top: 10px; right: 10px; background: #10b981; }
 
-        .pagination { display: flex; justify-content: center; align-items: center; gap: 8px; padding: 10px 15px 30px; flex-wrap: wrap; }
-        .page-btn { background: #1e293b; color: #fff; border: 1px solid #334155; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: bold; outline: none; transition: 0.2s;}
-        .page-btn:hover { background: #334155; }
-        .page-btn.active { background: #f87171; border-color: #f87171; color: white; }
+        /* ⚡ লোডার আইকন ডিজাইন */
+        .infinite-scroll-loader {
+            display: none;
+            justify-content: center;
+            align-items: center;
+            padding: 15px 0 30px 0;
+            width: 100%;
+        }
 
         .community-section { margin: 10px 15px 30px; padding: 15px; background: rgba(30, 41, 59, 0.5); border: 1px solid #334155; border-radius: 16px; backdrop-filter: blur(10px); }
         .social-grid { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
@@ -286,7 +301,11 @@ HTML_CODE = r"""
 
     <div class="section-title" id="recentTitle"><i class="fa-solid fa-clock-rotate-left text-blue-400"></i> Recently Added</div>
     <div class="grid" id="movieGrid"></div>
-    <div class="pagination" id="paginationBox"></div>
+    
+    <!-- ⚡ বাটন পেজিনেশনের জায়গায় আধুনিক ইনফিনিট স্ক্রল লোডার যুক্ত করা হলো -->
+    <div class="infinite-scroll-loader" id="infiniteLoader">
+        <div class="spinner-new" style="width: 35px; height: 35px; border-width: 4px; margin: 0;"></div>
+    </div>
     
     <div id="communityBox"></div>
 
@@ -522,6 +541,11 @@ HTML_CODE = r"""
         let currentSelectRating = 0;
         let isCurrentMovieBookmarked = false;
 
+        // ⚡ ইনফিনিট স্ক্রল ও রিকোয়েস্ট ম্যানেজমেন্ট গ্লোবাল ভ্যারিয়েবলস
+        let hasNextPage = true;
+        let isMoviesLoading = false;
+        let activeFetchController = null; // অতিরিক্ত সমান্তরাল রিকোয়েস্ট প্রতিরোধ কন্ট্রোলার
+
         function setNavActive(index) {
             const items = document.querySelectorAll('.nav-item');
             items.forEach((item, i) => {
@@ -647,7 +671,7 @@ HTML_CODE = r"""
             
             document.getElementById('trendingWrapper').style.display = 'block';
             loadTrending();
-            loadMovies(1); 
+            loadMovies(1, false); // false = ওভাররাইট মোড (নতুন করে লোড)
             closeMenu(); 
             window.scrollTo({ top: 0, behavior: 'smooth' }); 
         }
@@ -713,13 +737,10 @@ HTML_CODE = r"""
                             clicks: m.clicks || 0
                         };
                         
-                        let totalParts = m.files.length;
-                        let partText = totalParts === 1 ? 'Part' : 'Parts';
-                        
                         html += `
                         <div class="card" onclick="openQualityModal(this)" data-title="${encodeURIComponent(m.title)}">
-                            <div class="post-content">
-                                <img src="/api/image/${m.photo_id}" loading="lazy" onerror="this.src='https://via.placeholder.com/640x360?text=No+Image'">
+                            <div class="post-content shimmer-placeholder">
+                                <img src="/api/image/${m.photo_id}" loading="lazy" onload="this.parentNode.classList.remove('shimmer-placeholder')" onerror="this.src='https://via.placeholder.com/640x360?text=No+Image'">
                                 <div class="ep-badge"><i class="fa-solid fa-bookmark text-yellow-400"></i> Saved</div>
                             </div>
                             <div class="card-footer">
@@ -1014,10 +1035,6 @@ HTML_CODE = r"""
             }
         }
 
-        async function sendReq() {
-            submitReqTracker();
-        }
-
         function formatViews(n) { if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M'; if (n >= 1000) return (n / 1000).toFixed(1) + 'K'; return n; }
         function makeSafeId(str) { return str.replace(/[^a-zA-Z0-9]/g, '_'); }
 
@@ -1044,9 +1061,9 @@ HTML_CODE = r"""
                     let partText = totalParts === 1 ? 'Part' : 'Parts';
                     
                     return `<div class="trending-card" onclick="openQualityModal(this)" data-title="${encodeURIComponent(m._id)}">
-                        <div class="post-content">
+                        <div class="post-content shimmer-placeholder">
                             <div class="top-badge">🔥 TOP</div>
-                            <img src="/api/image/${m.photo_id}" loading="lazy" onerror="this.src='https://via.placeholder.com/640x360?text=No+Image'">
+                            <img src="/api/image/${m.photo_id}" loading="lazy" onload="this.parentNode.classList.remove('shimmer-placeholder')" onerror="this.src='https://via.placeholder.com/640x360?text=No+Image'">
                             <div class="ep-badge"><i class="fa-solid fa-list"></i> ${totalParts} ${partText}</div>
                             <div class="view-badge" id="trend-view-${makeSafeId(m._id)}"><i class="fa-solid fa-eye"></i> ${formatViews(m.clicks)}</div>
                         </div>
@@ -1060,25 +1077,53 @@ HTML_CODE = r"""
             } catch(e) {}
         }
 
-        async function loadMovies(page = 1) {
+        // ⚡ চূড়ান্ত আধুনিক ইনফিনিট স্ক্রল ভিত্তিক লোডার লজিক
+        async function loadMovies(page = 1, append = false) {
+            if (isMoviesLoading) return;
+            isMoviesLoading = true;
             currentPage = page;
+
             const grid = document.getElementById('movieGrid');
-            grid.innerHTML = "<p style='color:white; text-align:center;'>Loading...</p>";
+            const loader = document.getElementById('infiniteLoader');
+            
+            if (!append) {
+                grid.innerHTML = "<p style='color:white; text-align:center; padding: 20px;'>Loading...</p>";
+                hasNextPage = true;
+            } else {
+                loader.style.display = 'flex';
+            }
+
+            // যদি আগের কোনো সার্চ বা রিকোয়েস্ট পেন্ডিং থাকে তবে তা বাতিল করে নতুন রিকোয়েস্ট পাঠানো হবে
+            if (activeFetchController) {
+                activeFetchController.abort();
+            }
+            activeFetchController = new AbortController();
+            const signal = activeFetchController.signal;
+
             try {
-                const r = await fetch(`/api/list?page=${currentPage}&q=${encodeURIComponent(searchQuery)}&uid=${uid}`);
+                const r = await fetch(`/api/list?page=${currentPage}&q=${encodeURIComponent(searchQuery)}&uid=${uid}`, { signal });
                 const data = await r.json();
-                if(data.movies.length === 0) return grid.innerHTML = `<p style='text-align:center; color:#fbbf24;'>No videos found!</p>`;
                 
+                loader.style.display = 'none';
+                
+                if (data.movies.length === 0) {
+                    hasNextPage = false;
+                    if (!append) {
+                        grid.innerHTML = `<p style='text-align:center; color:#fbbf24; padding: 20px;'>No videos found!</p>`;
+                    }
+                    isMoviesLoading = false;
+                    return;
+                }
+
                 let htmlContent = "";
-                
                 data.movies.forEach((m, index) => {
                     loadedMovies[m._id] = m; 
                     let totalParts = m.files.length;
                     let partText = totalParts === 1 ? 'Part' : 'Parts';
                     
                     let cardHtml = `<div class="card" onclick="openQualityModal(this)" data-title="${encodeURIComponent(m._id)}">
-                        <div class="post-content">
-                            <img src="/api/image/${m.photo_id}" loading="lazy" onerror="this.src='https://via.placeholder.com/640x360?text=No+Image'">
+                        <div class="post-content shimmer-placeholder">
+                            <img src="/api/image/${m.photo_id}" loading="lazy" onload="this.parentNode.classList.remove('shimmer-placeholder')" onerror="this.src='https://via.placeholder.com/640x360?text=No+Image'">
                             <div class="ep-badge"><i class="fa-solid fa-list"></i> ${totalParts} ${partText}</div>
                             <div class="view-badge" id="list-view-${makeSafeId(m._id)}"><i class="fa-solid fa-eye"></i> ${formatViews(m.clicks)}</div>
                         </div>
@@ -1089,30 +1134,41 @@ HTML_CODE = r"""
                     </div>`;
                     htmlContent += cardHtml;
                     
-                    let visualIndex = index + 1;
+                    let visualIndex = index + 1 + ((currentPage - 1) * 15);
                     if (activeAds.length > 0 && visualIndex % AD_INTERVAL === 0) {
                         htmlContent += getAdCarouselHTML(visualIndex);
                     }
                 });
                 
-                grid.innerHTML = htmlContent;
-                
-                let html = "";
-                if(data.total_pages > 1) {
-                    html += `<button class="page-btn" ${currentPage === 1 ? 'disabled style="opacity:0.5;"' : ''} onclick="loadMovies(${currentPage - 1}); window.scrollTo({ top: document.getElementById('recentTitle').offsetTop - 60, behavior: 'smooth' });"><i class="fa-solid fa-angle-left"></i></button>`;
-                    
-                    let startP = Math.max(1, currentPage - 1);
-                    let endP = Math.min(data.total_pages, currentPage + 1);
-                    
-                    for(let i=startP; i<=endP; i++) { 
-                        html += `<button class="page-btn ${i===currentPage?'active':''}" onclick="loadMovies(${i}); window.scrollTo({ top: document.getElementById('recentTitle').offsetTop - 60, behavior: 'smooth' });">${i}</button>`; 
-                    }
-                    
-                    html += `<button class="page-btn" ${currentPage === data.total_pages ? 'disabled style="opacity:0.5;"' : ''} onclick="loadMovies(${currentPage + 1}); window.scrollTo({ top: document.getElementById('recentTitle').offsetTop - 60, behavior: 'smooth' });"><i class="fa-solid fa-angle-right"></i></button>`;
+                if (append) {
+                    grid.insertAdjacentHTML('beforeend', htmlContent);
+                } else {
+                    grid.innerHTML = htmlContent;
                 }
-                document.getElementById('paginationBox').innerHTML = html;
-            } catch(e) {}
+
+                // যদি এটিই শেষ পেজ হয় তবে ইনফিনিট স্ক্রল বন্ধ করে দেওয়া হবে
+                if (currentPage >= data.total_pages) {
+                    hasNextPage = false;
+                }
+
+            } catch(e) {
+                if (e.name !== 'AbortError') {
+                    console.error("Movie fetch error:", e);
+                }
+            } finally {
+                isMoviesLoading = false;
+            }
         }
+
+        // ⚡ স্ক্রল ইভেন্ট লুপ (ইনফিনিট স্ক্রল কার্যকর করার জন্য)
+        window.addEventListener('scroll', () => {
+            if (!hasNextPage || isMoviesLoading) return;
+
+            // স্ক্রিনের শেষ সীমানা থেকে ২৫০ পিক্সেল উপরে থাকতেই নতুন পেজ রিকোয়েস্ট পাঠানো হবে
+            if ((window.innerHeight + window.scrollY) >= (document.documentElement.scrollHeight - 250)) {
+                loadMovies(currentPage + 1, true);
+            }
+        });
 
         let timeout = null;
         document.getElementById('searchInput').addEventListener('input', function(e) {
@@ -1136,7 +1192,10 @@ HTML_CODE = r"""
                 if(document.querySelector('.developer-credit')) document.querySelector('.developer-credit').style.display = 'block';
             }
             
-            timeout = setTimeout(() => loadMovies(1), 500); 
+            timeout = setTimeout(() => {
+                hasNextPage = true;
+                loadMovies(1, false);
+            }, 500); 
         });
 
         async function openQualityModal(element) {
@@ -1527,7 +1586,7 @@ HTML_CODE = r"""
                     fetchUserInfo(),
                     fetchActiveAds(),
                     loadTrending(),
-                    loadMovies(1)
+                    loadMovies(1, false) // ১ম পেজ ফ্রেশ লোড
                 ]);
                 renderCommunitySection();
                 startAdCarouselsAutoScroll(); 
