@@ -21,7 +21,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 # কনফিগারেশন ভ্যারিয়েবলসমূহ
-TOKEN = "8756368847:AAGnP1O0K7QGSjnpmrwVxcO8tNd0OTmxxMQ"                  
+TOKEN = ""                  
 API_ID = "37875259"                              
 API_HASH = "d7c626c8cd1f358b04178ca0fd803ded"                
 SESSION_STRING = ""                            
@@ -36,7 +36,7 @@ APP_URL = os.getenv("APP_URL", "http://localhost:8000")
 TUTORIAL_LINK = "https://t.me/HowtoDowlnoad/41"
 REQUEST_LINK = "https://t.me/+NEMfLNawn2hkNjg9"
 
-_db_ch = "-1004423843057"                       
+_db_ch = "-1004328471246"                       
 DB_CHANNEL_ID = int(_db_ch) if _db_ch.lstrip('-').isdigit() else None
 
 PORT_NUMBER = 8000                             
