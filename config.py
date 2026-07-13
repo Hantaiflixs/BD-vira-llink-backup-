@@ -22,14 +22,14 @@ logger = logging.getLogger(__name__)
 
 # কনফিগারেশন ভ্যারিয়েবলসমূহ
 TOKEN = "8756368847:AAGnP1O0K7QGSjnpmrwVxcO8tNd0OTmxxMQ"                  
-API_ID = 28870226                              
-API_HASH = "a5b1ff3f75941649bf5bc159782f0f00"                
+API_ID = "37875259"                              
+API_HASH = "d7c626c8cd1f358b04178ca0fd803ded"                
 SESSION_STRING = ""                            
 MONGO_URL = "mongodb+srv://MoviaXBot270:MoviaXBot270@cluster0.kbkpgt6.mongodb.net/?appName=Cluster0"              
-OWNER_ID = 7528643689                           
-CHANNEL_ID = "-1003655443965"                   
+OWNER_ID = "8698935150"                          
+CHANNEL_ID = "-1004487224429"                   
 ADMIN_PASS = "admin123"                        
-BOT_USERNAME = "BDViralLinkProBot"                
+BOT_USERNAME = "bdvirallink_1bot"                
 
 APP_URL = os.getenv("APP_URL", "http://localhost:8000")
 
