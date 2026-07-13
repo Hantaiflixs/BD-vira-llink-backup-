@@ -21,7 +21,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 # কনফিগারেশন ভ্যারিয়েবলসমূহ
-TOKEN = ""                  
+TOKEN = os.environ.get("TOKEN")                  
 API_ID = "37875259"                              
 API_HASH = "d7c626c8cd1f358b04178ca0fd803ded"                
 SESSION_STRING = ""                            
