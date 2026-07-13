@@ -26,7 +26,7 @@ API_ID = "37875259"
 API_HASH = "d7c626c8cd1f358b04178ca0fd803ded"                
 SESSION_STRING = ""                            
 MONGO_URL = "mongodb+srv://kentkouhnae1f:rCKrDhIdpLEkF0Qc@cluster0.lsxeyl3.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"              
-OWNER_ID = "8698935150"                          
+OWNER_ID = 8698935150                    
 CHANNEL_ID = "-1004487224429"                   
 ADMIN_PASS = "admin123"                        
 BOT_USERNAME = "bdvirallink_1bot"                
