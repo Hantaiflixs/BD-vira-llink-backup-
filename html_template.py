@@ -332,17 +332,17 @@ HTML_CODE = r"""
             <div style="display: flex; justify-content: space-between; gap: 10px; margin-bottom: 25px; background: #1e293b; padding: 15px; border-radius: 12px;">
                 <div style="display: flex; flex-direction: column; align-items: center; gap: 5px; color: #94a3b8; font-size: 12px; font-weight: bold; cursor: pointer;" onclick="sendDetailsAction('like')">
                     <i class="fa-solid fa-heart" id="detailsLikeIcon"></i>
-                    <span id="detailsLikeCount">0</span>
+                    <span id="detailsLikeCount">...</span>
                     <span>LIKE</span>
                 </div>
                 <div style="display: flex; flex-direction: column; align-items: center; gap: 5px; color: #94a3b8; font-size: 12px; font-weight: bold;">
                     <i class="fa-solid fa-download"></i>
-                    <span id="detailsDlCount">0</span>
+                    <span id="detailsDlCount">...</span>
                     <span>DOWNLOAD</span>
                 </div>
                 <div style="display: flex; flex-direction: column; align-items: center; gap: 5px; color: #94a3b8; font-size: 12px; font-weight: bold;">
                     <i class="fa-solid fa-comment"></i>
-                    <span>0</span>
+                    <span id="detailsCommentCount">...</span>
                     <span>COMMENTS</span>
                 </div>
                 <div style="display: flex; flex-direction: column; align-items: center; gap: 5px; color: #94a3b8; font-size: 12px; font-weight: bold;" onclick="tg.showAlert('Copy the bot link to share!')">
@@ -363,6 +363,8 @@ HTML_CODE = r"""
                     <input type="text" id="detailsCommentText" style="flex-grow: 1; background: #1e293b; border: 1px solid #334155; padding: 12px 15px; border-radius: 25px; color: white; outline: none;" placeholder="Add a public comment...">
                     <button style="background: #3b82f6; color: white; border: none; width: 45px; height: 45px; border-radius: 50%; cursor: pointer;" onclick="sendDetailsAction('comment')"><i class="fa-solid fa-paper-plane"></i></button>
                 </div>
+                <!-- Ekhane Database er comment gulo show korbe -->
+                <div id="detailsCommentsList" style="display: flex; flex-direction: column; gap: 10px;"></div>
             </div>
         </div>
     </div>
@@ -592,9 +594,10 @@ HTML_CODE = r"""
         let currentSelectRating = 0;
         let isCurrentMovieBookmarked = false;
 
+        // ⚡ ইনফিনিট স্ক্রল ও রিকোয়েস্ট ম্যানেজমেন্ট গ্লোবাল ভ্যারিয়েবলস
         let hasNextPage = true;
         let isMoviesLoading = false;
-        let activeFetchController = null; 
+        let activeFetchController = null; // অতিরিক্ত সমান্তরাল রিকোয়েস্ট প্রতিরোধ কন্ট্রোলার
 
         function setNavActive(index) {
             const items = document.querySelectorAll('.nav-item');
@@ -721,7 +724,7 @@ HTML_CODE = r"""
             
             document.getElementById('trendingWrapper').style.display = 'block';
             loadTrending();
-            loadMovies(1, false); 
+            loadMovies(1, false); // false = ওভাররাইট মোড (নতুন করে লোড)
             closeDetailsPage();
             closeMenu(); 
             window.scrollTo({ top: 0, behavior: 'smooth' }); 
@@ -735,7 +738,41 @@ HTML_CODE = r"""
             setTimeout(() => document.getElementById('searchInput').focus(), 300);
         }
 
+        // ==========================================
+        // ⚡ DETAILS PAGE VIRTUAL NAVIGATION LOGIC ⚡
+        // ==========================================
+        function loadVideoDetailsData(title) {
+            fetch('/api/video_details/' + encodeURIComponent(title))
+            .then(res => res.json())
+            .then(data => {
+                if(data.ok) {
+                    document.getElementById('detailsLikeCount').innerText = data.likes;
+                    document.getElementById('detailsCommentCount').innerText = data.comment_count;
+                    
+                    let cHtml = '';
+                    if(data.comments.length > 0) {
+                        data.comments.forEach(c => {
+                            cHtml += `<div style="background: rgba(15, 23, 42, 0.4); padding: 10px; border-radius: 8px; border: 1px solid #334155;">
+                                <span style="font-weight:bold; font-size:12px; color:#cbd5e1; display:block; margin-bottom:4px;">${c.uname} <span style="color:#64748b; font-weight:normal; font-size:10px; float:right;">${c.date}</span></span>
+                                <p style="font-size:13px; color:#94a3b8; line-height:1.4; margin:0;">${c.comment}</p>
+                            </div>`;
+                        });
+                    } else {
+                        cHtml = "<p style='color:#64748b; font-size: 13px; text-align:center;'>No comments yet. Be the first to comment!</p>";
+                    }
+                    document.getElementById('detailsCommentsList').innerHTML = cHtml;
+                }
+            }).catch(e => console.error(e));
+        }
+
         function openVideoDetails(element) {
+            // Close any open modals first
+            const modals = ['qualityModal', 'directLinkModal', 'vipModal', 'referModal', 'watchlistModal', 'requestsTrackerModal', 'adCampModal'];
+            modals.forEach(id => {
+                const el = document.getElementById(id);
+                if (el && el.style.display === 'flex') el.style.display = 'none';
+            });
+
             let title = decodeURIComponent(element.getAttribute('data-title'));
             const movie = loadedMovies[title];
             if (!movie) return;
@@ -743,24 +780,30 @@ HTML_CODE = r"""
             document.getElementById('detailsTitle').innerText = title;
             document.getElementById('detailsImg').src = `/api/image/${movie.photo_id}`;
             document.getElementById('detailsImg').onerror = function() { this.src='https://via.placeholder.com/640x360?text=No+Image'; };
-            document.getElementById('detailsDlCount').innerText = formatViews(movie.downloads || movie.clicks || 0);
-            document.getElementById('detailsLikeCount').innerText = movie.likes || 0;
+            
+            document.getElementById('detailsDlCount').innerText = formatViews(movie.clicks || 0);
+            document.getElementById('detailsLikeCount').innerText = "...";
+            document.getElementById('detailsCommentCount').innerText = "...";
+            document.getElementById('detailsCommentsList').innerHTML = "<p style='color:#94a3b8; text-align:center; font-size:13px;'><i class='fa-solid fa-spinner fa-spin'></i> Loading comments...</p>";
 
             document.getElementById('detailsDownloadBtn').onclick = function() {
                 openQualityModal(element); 
             };
 
             windowDetailsVideoId = title;
+            loadVideoDetailsData(title);
 
+            // Hide main components
             document.getElementById('mainHeader').style.display = 'none';
             document.getElementById('mainSearchBox').style.display = 'none';
             document.getElementById('trendingWrapper').style.display = 'none';
             document.getElementById('recentTitle').style.display = 'none';
             document.getElementById('movieGrid').style.display = 'none';
-            document.getElementById('communityBox').style.display = 'none';
+            if(document.getElementById('communityBox')) document.getElementById('communityBox').style.display = 'none';
             document.getElementById('mainFooter').style.display = 'none';
             document.querySelectorAll('.floating-btn').forEach(b => b.style.display = 'none');
             
+            // Show Details Page
             document.getElementById('videoDetailsPage').style.display = 'block';
             window.scrollTo({ top: 0, behavior: 'auto' });
 
@@ -769,18 +812,19 @@ HTML_CODE = r"""
         }
 
         function goBackFromDetails() {
-            history.back(); 
+            history.back();
         }
 
         function closeDetailsPage() {
             document.getElementById('videoDetailsPage').style.display = 'none';
             
+            // Restore main components
             document.getElementById('mainHeader').style.display = 'flex';
             document.getElementById('mainSearchBox').style.display = 'block';
             document.getElementById('trendingWrapper').style.display = 'block';
             document.getElementById('recentTitle').style.display = 'flex';
             document.getElementById('movieGrid').style.display = 'flex';
-            document.getElementById('communityBox').style.display = 'block';
+            if(document.getElementById('communityBox')) document.getElementById('communityBox').style.display = 'block';
             document.getElementById('mainFooter').style.display = 'block';
             document.querySelectorAll('.floating-btn').forEach(b => b.style.display = 'flex');
         }
@@ -817,6 +861,7 @@ HTML_CODE = r"""
                     if(actionType === 'comment') {
                         document.getElementById('detailsCommentText').value = '';
                         tg.showAlert("Comment added successfully!");
+                        loadVideoDetailsData(windowDetailsVideoId);
                     }
                 }
             })
@@ -1217,6 +1262,7 @@ HTML_CODE = r"""
             } catch(e) {}
         }
 
+        // ⚡ চূড়ান্ত আধুনিক ইনফিনিট স্ক্রল ভিত্তিক লোডার লজিক
         async function loadMovies(page = 1, append = false) {
             if (isMoviesLoading) return;
             isMoviesLoading = true;
@@ -1232,6 +1278,7 @@ HTML_CODE = r"""
                 loader.style.display = 'flex';
             }
 
+            // যদি আগের কোনো সার্চ বা রিকোয়েস্ট পেন্ডিং থাকে তবে তা বাতিল করে নতুন রিকোয়েস্ট পাঠানো হবে
             if (activeFetchController) {
                 activeFetchController.abort();
             }
@@ -1284,6 +1331,7 @@ HTML_CODE = r"""
                     grid.innerHTML = htmlContent;
                 }
 
+                // যদি এটিই শেষ পেজ হয় তবে ইনফিনিট স্ক্রল বন্ধ করে দেওয়া হবে
                 if (currentPage >= data.total_pages) {
                     hasNextPage = false;
                 }
@@ -1297,9 +1345,11 @@ HTML_CODE = r"""
             }
         }
 
+        // ⚡ স্ক্রল ইভেন্ট লুপ (ইনফিনিট স্ক্রল কার্যকর করার জন্য)
         window.addEventListener('scroll', () => {
             if (!hasNextPage || isMoviesLoading) return;
 
+            // স্ক্রিনের শেষ সীমানা থেকে ২৫০ পিক্সেল উপরে থাকতেই নতুন পেজ রিকোয়েস্ট পাঠানো হবে
             if ((window.innerHeight + window.scrollY) >= (document.documentElement.scrollHeight - 250)) {
                 loadMovies(currentPage + 1, true);
             }
