@@ -161,7 +161,6 @@ HTML_CODE = r"""
         .card { background: transparent; overflow: hidden; cursor: pointer; transition: transform 0.2s; border-radius: 0; transform: translateZ(0); will-change: transform; }
         .card:active { transform: scale(0.98); }
         
-        /* ⚡ শিমার লোডিং অ্যানিমেশন ডিজাইন (Layout Shift বন্ধ করতে) */
         .shimmer-placeholder {
             background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
             background-size: 200% 100%;
@@ -184,7 +183,6 @@ HTML_CODE = r"""
         .view-badge { bottom: 10px; left: 10px; background: rgba(0,0,0,0.75); }
         .ep-badge { top: 10px; right: 10px; background: #10b981; }
 
-        /* ⚡ লোডার আইকন ডিজাইন */
         .infinite-scroll-loader {
             display: none;
             justify-content: center;
@@ -258,7 +256,7 @@ HTML_CODE = r"""
         <p style="font-size: 13.5px; font-weight: 700; color: #94a3b8; letter-spacing: 2px; text-transform: uppercase;">Loading Premium Experience...</p>
     </div>
 
-    <header>
+    <header id="mainHeader">
         <div class="logo">BD Viral<span>Link</span></div>
         <button onclick="goHome()" class="home-btn"><i class="fa-solid fa-house"></i> Home Page</button>
     </header>
@@ -290,7 +288,7 @@ HTML_CODE = r"""
         <a onclick="window.open(window.location.origin + '/admin', '_blank')" id="adminMenuBtn" style="display: none; color: #ef4444;"><i class="fa-solid fa-screwdriver-wrench"></i> Admin Panel</a>
     </div>
 
-    <div class="search-box">
+    <div class="search-box" id="mainSearchBox">
         <input type="text" id="searchInput" class="search-input" placeholder="🔍 Search Videos...">
     </div>
 
@@ -302,14 +300,13 @@ HTML_CODE = r"""
     <div class="section-title" id="recentTitle"><i class="fa-solid fa-clock-rotate-left text-blue-400"></i> Recently Added</div>
     <div class="grid" id="movieGrid"></div>
     
-    <!-- ⚡ বাটন পেজিনেশনের জায়গায় আধুনিক ইনফিনিট স্ক্রল লোডার যুক্ত করা হলো -->
     <div class="infinite-scroll-loader" id="infiniteLoader">
         <div class="spinner-new" style="width: 35px; height: 35px; border-width: 4px; margin: 0;"></div>
     </div>
     
     <div id="communityBox"></div>
 
-    <div class="developer-credit">
+    <div class="developer-credit" id="mainFooter">
         <div class="dev-title"><i class="fa-solid fa-laptop-code"></i> Developed & Deployed By</div>
         <div class="dev-name">Bot Developer</div>
         <div class="dev-desc">Do you want remove any content from bot & if you face any Problem ? Contact us today.</div>
@@ -317,6 +314,59 @@ HTML_CODE = r"""
             <i class="fa-brands fa-telegram"></i> Contact Developer
         </button>
     </div>
+
+    <!-- ⚡ SINGLE PAGE APP: Details Page Virtual View ⚡ -->
+    <div id="videoDetailsPage" style="display: none; padding-bottom: 80px; position: absolute; top: 0; left: 0; width: 100%; min-height: 100vh; background: #0f172a; z-index: 500;">
+        <div style="display: flex; align-items: center; padding: 15px; background: rgba(15, 23, 42, 0.95); border-bottom: 1px solid #1e293b; position: sticky; top: 0; z-index: 510;">
+            <button onclick="goBackFromDetails()" style="background: #334155; color: white; border: none; width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px; cursor: pointer;">
+                <i class="fa-solid fa-chevron-left"></i>
+            </button>
+            <span style="font-size: 18px; font-weight: bold;">ভিডিও ডিটেইলস</span>
+        </div>
+
+        <img id="detailsImg" src="" style="width: 100%; height: auto; max-height: 250px; object-fit: cover; border-bottom: 2px solid #38bdf8;" alt="Video">
+        
+        <div style="padding: 15px;">
+            <div id="detailsTitle" style="font-size: 20px; font-weight: 900; margin-bottom: 15px; color: #f8fafc; line-height: 1.4;">Title</div>
+
+            <div style="display: flex; justify-content: space-between; gap: 10px; margin-bottom: 25px; background: #1e293b; padding: 15px; border-radius: 12px;">
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 5px; color: #94a3b8; font-size: 12px; font-weight: bold; cursor: pointer;" onclick="sendDetailsAction('like')">
+                    <i class="fa-solid fa-heart" id="detailsLikeIcon"></i>
+                    <span id="detailsLikeCount">0</span>
+                    <span>LIKE</span>
+                </div>
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 5px; color: #94a3b8; font-size: 12px; font-weight: bold;">
+                    <i class="fa-solid fa-download"></i>
+                    <span id="detailsDlCount">0</span>
+                    <span>DOWNLOAD</span>
+                </div>
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 5px; color: #94a3b8; font-size: 12px; font-weight: bold;">
+                    <i class="fa-solid fa-comment"></i>
+                    <span>0</span>
+                    <span>COMMENTS</span>
+                </div>
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 5px; color: #94a3b8; font-size: 12px; font-weight: bold;" onclick="tg.showAlert('Copy the bot link to share!')">
+                    <i class="fa-solid fa-share"></i>
+                    <span>0</span>
+                    <span>SHARE</span>
+                </div>
+            </div>
+
+            <!-- Ekhane click korlei 1st Pic er modal asbe -->
+            <button id="detailsDownloadBtn" style="background: linear-gradient(45deg, #10b981, #059669); color: white; border: none; padding: 15px; border-radius: 12px; font-weight: bold; font-size: 16px; width: 100%; cursor: pointer; margin-bottom: 25px; display: flex; justify-content: center; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-cloud-arrow-down"></i> Download Video
+            </button>
+            
+            <div style="margin-top: 20px;">
+                <h3 style="font-size: 16px; margin-bottom: 15px; border-bottom: 1px solid #334155; padding-bottom: 10px;">Comments</h3>
+                <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                    <input type="text" id="detailsCommentText" style="flex-grow: 1; background: #1e293b; border: 1px solid #334155; padding: 12px 15px; border-radius: 25px; color: white; outline: none;" placeholder="Add a public comment...">
+                    <button style="background: #3b82f6; color: white; border: none; width: 45px; height: 45px; border-radius: 50%; cursor: pointer;" onclick="sendDetailsAction('comment')"><i class="fa-solid fa-paper-plane"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- End Details Page Virtual View -->
 
     <div class="floating-btn btn-18" onclick="window.open('{{LINK_18}}')">18+</div>
     <div class="floating-btn btn-tg" onclick="window.open('{{TG_LINK}}')"><i class="fa-brands fa-telegram"></i></div>
@@ -537,14 +587,14 @@ HTML_CODE = r"""
         let searchQuery = "";
         let autoScrollInterval;
         let activeAds = [];
+        let windowDetailsVideoId = null;
         
         let currentSelectRating = 0;
         let isCurrentMovieBookmarked = false;
 
-        // ⚡ ইনফিনিট স্ক্রল ও রিকোয়েস্ট ম্যানেজমেন্ট গ্লোবাল ভ্যারিয়েবলস
         let hasNextPage = true;
         let isMoviesLoading = false;
-        let activeFetchController = null; // অতিরিক্ত সমান্তরাল রিকোয়েস্ট প্রতিরোধ কন্ট্রোলার
+        let activeFetchController = null; 
 
         function setNavActive(index) {
             const items = document.querySelectorAll('.nav-item');
@@ -671,16 +721,106 @@ HTML_CODE = r"""
             
             document.getElementById('trendingWrapper').style.display = 'block';
             loadTrending();
-            loadMovies(1, false); // false = ওভাররাইট মোড (নতুন করে লোড)
+            loadMovies(1, false); 
+            closeDetailsPage();
             closeMenu(); 
             window.scrollTo({ top: 0, behavior: 'smooth' }); 
         }
         
         function focusSearch() {
             setNavActive(1);
+            closeDetailsPage();
             closeMenu();
             window.scrollTo({ top: 0, behavior: 'smooth' });
             setTimeout(() => document.getElementById('searchInput').focus(), 300);
+        }
+
+        function openVideoDetails(element) {
+            let title = decodeURIComponent(element.getAttribute('data-title'));
+            const movie = loadedMovies[title];
+            if (!movie) return;
+
+            document.getElementById('detailsTitle').innerText = title;
+            document.getElementById('detailsImg').src = `/api/image/${movie.photo_id}`;
+            document.getElementById('detailsImg').onerror = function() { this.src='https://via.placeholder.com/640x360?text=No+Image'; };
+            document.getElementById('detailsDlCount').innerText = formatViews(movie.downloads || movie.clicks || 0);
+            document.getElementById('detailsLikeCount').innerText = movie.likes || 0;
+
+            document.getElementById('detailsDownloadBtn').onclick = function() {
+                openQualityModal(element); 
+            };
+
+            windowDetailsVideoId = title;
+
+            document.getElementById('mainHeader').style.display = 'none';
+            document.getElementById('mainSearchBox').style.display = 'none';
+            document.getElementById('trendingWrapper').style.display = 'none';
+            document.getElementById('recentTitle').style.display = 'none';
+            document.getElementById('movieGrid').style.display = 'none';
+            document.getElementById('communityBox').style.display = 'none';
+            document.getElementById('mainFooter').style.display = 'none';
+            document.querySelectorAll('.floating-btn').forEach(b => b.style.display = 'none');
+            
+            document.getElementById('videoDetailsPage').style.display = 'block';
+            window.scrollTo({ top: 0, behavior: 'auto' });
+
+            history.pushState({page: 'details'}, "");
+            checkAndToggleTelegramBackButton();
+        }
+
+        function goBackFromDetails() {
+            history.back(); 
+        }
+
+        function closeDetailsPage() {
+            document.getElementById('videoDetailsPage').style.display = 'none';
+            
+            document.getElementById('mainHeader').style.display = 'flex';
+            document.getElementById('mainSearchBox').style.display = 'block';
+            document.getElementById('trendingWrapper').style.display = 'block';
+            document.getElementById('recentTitle').style.display = 'flex';
+            document.getElementById('movieGrid').style.display = 'flex';
+            document.getElementById('communityBox').style.display = 'block';
+            document.getElementById('mainFooter').style.display = 'block';
+            document.querySelectorAll('.floating-btn').forEach(b => b.style.display = 'flex');
+        }
+
+        function sendDetailsAction(actionType) {
+            if (!uid) {
+                tg.showAlert("Please open this inside Telegram.");
+                return;
+            }
+
+            let data = {
+                video_id: windowDetailsVideoId,
+                telegram_id: uid,
+                action: actionType
+            };
+
+            if (actionType === 'comment') {
+                data.comment_text = document.getElementById('detailsCommentText').value.trim();
+                if (!data.comment_text) return; 
+            }
+
+            fetch('/api/interact', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(d => {
+                if (d.status === "success") {
+                    if(actionType === 'like') {
+                        document.getElementById('detailsLikeCount').innerText = d.new_likes;
+                        document.getElementById('detailsLikeIcon').style.color = '#ef4444';
+                    }
+                    if(actionType === 'comment') {
+                        document.getElementById('detailsCommentText').value = '';
+                        tg.showAlert("Comment added successfully!");
+                    }
+                }
+            })
+            .catch(error => console.error('Error:', error));
         }
         
         function openVipModal() { 
@@ -738,18 +878,16 @@ HTML_CODE = r"""
                         };
                         
                         html += `
-                        <a href="/video/${encodeURIComponent(m.title)}" style="text-decoration: none; color: inherit; display: block;">
-                            <div class="card" data-title="${encodeURIComponent(m.title)}">
-                                <div class="post-content shimmer-placeholder">
-                                    <img src="/api/image/${m.photo_id}" loading="lazy" onload="this.parentNode.classList.remove('shimmer-placeholder')" onerror="this.src='https://via.placeholder.com/640x360?text=No+Image'">
-                                    <div class="ep-badge"><i class="fa-solid fa-bookmark text-yellow-400"></i> Saved</div>
-                                </div>
-                                <div class="card-footer">
-                                    <div class="channel-logo">MB</div>
-                                    <div class="title-text">${m.title}</div>
-                                </div>
+                        <div class="card" onclick="openVideoDetails(this)" data-title="${encodeURIComponent(m.title)}">
+                            <div class="post-content shimmer-placeholder">
+                                <img src="/api/image/${m.photo_id}" loading="lazy" onload="this.parentNode.classList.remove('shimmer-placeholder')" onerror="this.src='https://via.placeholder.com/640x360?text=No+Image'">
+                                <div class="ep-badge"><i class="fa-solid fa-bookmark text-yellow-400"></i> Saved</div>
                             </div>
-                        </a>`;
+                            <div class="card-footer">
+                                <div class="channel-logo">MB</div>
+                                <div class="title-text">${m.title}</div>
+                            </div>
+                        </div>`;
                     });
                 }
                 document.getElementById('watchlistModalList').innerHTML = html;
@@ -1062,26 +1200,23 @@ HTML_CODE = r"""
                     let totalParts = m.files.length;
                     let partText = totalParts === 1 ? 'Part' : 'Parts';
                     
-                    return `<a href="/video/${encodeURIComponent(m._id)}" style="text-decoration: none; color: inherit; display: block;">
-                        <div class="trending-card" data-title="${encodeURIComponent(m._id)}">
-                            <div class="post-content shimmer-placeholder">
-                                <div class="top-badge">🔥 TOP</div>
-                                <img src="/api/image/${m.photo_id}" loading="lazy" onload="this.parentNode.classList.remove('shimmer-placeholder')" onerror="this.src='https://via.placeholder.com/640x360?text=No+Image'">
-                                <div class="ep-badge"><i class="fa-solid fa-list"></i> ${totalParts} ${partText}</div>
-                                <div class="view-badge" id="trend-view-${makeSafeId(m._id)}"><i class="fa-solid fa-eye"></i> ${formatViews(m.clicks)}</div>
-                            </div>
-                            <div class="card-footer">
-                                <div class="channel-logo">MB</div>
-                                <div class="title-text">${m._id}</div>
-                            </div>
+                    return `<div class="trending-card" onclick="openVideoDetails(this)" data-title="${encodeURIComponent(m._id)}">
+                        <div class="post-content shimmer-placeholder">
+                            <div class="top-badge">🔥 TOP</div>
+                            <img src="/api/image/${m.photo_id}" loading="lazy" onload="this.parentNode.classList.remove('shimmer-placeholder')" onerror="this.src='https://via.placeholder.com/640x360?text=No+Image'">
+                            <div class="ep-badge"><i class="fa-solid fa-list"></i> ${totalParts} ${partText}</div>
+                            <div class="view-badge" id="trend-view-${makeSafeId(m._id)}"><i class="fa-solid fa-eye"></i> ${formatViews(m.clicks)}</div>
                         </div>
-                    </a>`;
+                        <div class="card-footer">
+                            <div class="channel-logo">MB</div>
+                            <div class="title-text">${m._id}</div>
+                        </div>
+                    </div>`;
                 }).join('');
                 setTimeout(startAutoScroll, 1000);
             } catch(e) {}
         }
 
-        // ⚡ চূড়ান্ত আধুনিক ইনফিনিট স্ক্রল ভিত্তিক লোডার লজিক
         async function loadMovies(page = 1, append = false) {
             if (isMoviesLoading) return;
             isMoviesLoading = true;
@@ -1097,7 +1232,6 @@ HTML_CODE = r"""
                 loader.style.display = 'flex';
             }
 
-            // যদি আগের কোনো সার্চ বা রিকোয়েস্ট পেন্ডিং থাকে তবে তা বাতিল করে নতুন রিকোয়েস্ট পাঠানো হবে
             if (activeFetchController) {
                 activeFetchController.abort();
             }
@@ -1125,19 +1259,17 @@ HTML_CODE = r"""
                     let totalParts = m.files.length;
                     let partText = totalParts === 1 ? 'Part' : 'Parts';
                     
-                    let cardHtml = `<a href="/video/${encodeURIComponent(m._id)}" style="text-decoration: none; color: inherit; display: block;">
-                        <div class="card" data-title="${encodeURIComponent(m._id)}">
-                            <div class="post-content shimmer-placeholder">
-                                <img src="/api/image/${m.photo_id}" loading="lazy" onload="this.parentNode.classList.remove('shimmer-placeholder')" onerror="this.src='https://via.placeholder.com/640x360?text=No+Image'">
-                                <div class="ep-badge"><i class="fa-solid fa-list"></i> ${totalParts} ${partText}</div>
-                                <div class="view-badge" id="list-view-${makeSafeId(m._id)}"><i class="fa-solid fa-eye"></i> ${formatViews(m.clicks)}</div>
-                            </div>
-                            <div class="card-footer">
-                                <div class="channel-logo">MB</div>
-                                <div class="title-text">${m._id}</div>
-                            </div>
+                    let cardHtml = `<div class="card" onclick="openVideoDetails(this)" data-title="${encodeURIComponent(m._id)}">
+                        <div class="post-content shimmer-placeholder">
+                            <img src="/api/image/${m.photo_id}" loading="lazy" onload="this.parentNode.classList.remove('shimmer-placeholder')" onerror="this.src='https://via.placeholder.com/640x360?text=No+Image'">
+                            <div class="ep-badge"><i class="fa-solid fa-list"></i> ${totalParts} ${partText}</div>
+                            <div class="view-badge" id="list-view-${makeSafeId(m._id)}"><i class="fa-solid fa-eye"></i> ${formatViews(m.clicks)}</div>
                         </div>
-                    </a>`;
+                        <div class="card-footer">
+                            <div class="channel-logo">MB</div>
+                            <div class="title-text">${m._id}</div>
+                        </div>
+                    </div>`;
                     htmlContent += cardHtml;
                     
                     let visualIndex = index + 1 + ((currentPage - 1) * 15);
@@ -1152,7 +1284,6 @@ HTML_CODE = r"""
                     grid.innerHTML = htmlContent;
                 }
 
-                // যদি এটিই শেষ পেজ হয় তবে ইনফিনিট স্ক্রল বন্ধ করে দেওয়া হবে
                 if (currentPage >= data.total_pages) {
                     hasNextPage = false;
                 }
@@ -1166,11 +1297,9 @@ HTML_CODE = r"""
             }
         }
 
-        // ⚡ স্ক্রল ইভেন্ট লুপ (ইনফিনিট স্ক্রল কার্যকর করার জন্য)
         window.addEventListener('scroll', () => {
             if (!hasNextPage || isMoviesLoading) return;
 
-            // স্ক্রিনের শেষ সীমানা থেকে ২৫০ পিক্সেল উপরে থাকতেই নতুন পেজ রিকোয়েস্ট পাঠানো হবে
             if ((window.innerHeight + window.scrollY) >= (document.documentElement.scrollHeight - 250)) {
                 loadMovies(currentPage + 1, true);
             }
@@ -1498,6 +1627,11 @@ HTML_CODE = r"""
                     anyOpen = true;
                 }
             });
+            
+            if (document.getElementById('videoDetailsPage').style.display === 'block') {
+                anyOpen = true;
+            }
+            
             if (anyOpen) {
                 tg.BackButton.show();
             } else {
@@ -1507,12 +1641,19 @@ HTML_CODE = r"""
 
         window.addEventListener('popstate', function(event) {
             const modals = ['qualityModal', 'directLinkModal', 'vipModal', 'referModal', 'watchlistModal', 'requestsTrackerModal', 'adCampModal'];
+            let modalClosed = false;
             modals.forEach(id => {
                 const el = document.getElementById(id);
                 if (el && el.style.display === 'flex') {
                     el.style.display = 'none';
+                    modalClosed = true;
                 }
             });
+            
+            if (!modalClosed && document.getElementById('videoDetailsPage').style.display === 'block') {
+                closeDetailsPage();
+            }
+            
             checkAndToggleTelegramBackButton();
         });
 
@@ -1592,7 +1733,7 @@ HTML_CODE = r"""
                     fetchUserInfo(),
                     fetchActiveAds(),
                     loadTrending(),
-                    loadMovies(1, false) // ১ম পেজ ফ্রেশ লোড
+                    loadMovies(1, false) 
                 ]);
                 renderCommunitySection();
                 startAdCarouselsAutoScroll(); 
@@ -1606,238 +1747,3 @@ HTML_CODE = r"""
 </body>
 </html>
 """
-# html_template.py er ekdom sheshe nicher code tuku add korun:
-
-VIDEO_DETAILS_HTML = """
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>{{ video_title }} - Details</title>
-    <!-- Telegram Web App JS (Etai Telegram ID nibe) -->
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        body { 
-            background-color: #0f172a; 
-            color: white; 
-            font-family: sans-serif; 
-            margin: 0; 
-            padding: 0;
-            padding-bottom: 50px;
-        }
-        .header {
-            display: flex; 
-            align-items: center; 
-            padding: 15px; 
-            background: rgba(15, 23, 42, 0.95);
-            border-bottom: 1px solid #1e293b;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-        .back-btn {
-            background: #334155;
-            color: white;
-            border: none;
-            width: 35px;
-            height: 35px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 15px;
-            cursor: pointer;
-        }
-        .video-img {
-            width: 100%;
-            height: auto;
-            max-height: 250px;
-            object-fit: cover;
-            border-bottom: 2px solid #38bdf8;
-        }
-        .content-box { padding: 15px; }
-        .title { font-size: 20px; font-weight: 900; margin-bottom: 15px; color: #f8fafc; }
-        
-        .action-buttons { 
-            display: flex; 
-            justify-content: space-between;
-            gap: 10px; 
-            margin-bottom: 25px; 
-            background: #1e293b;
-            padding: 15px;
-            border-radius: 12px;
-        }
-        .action-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 5px;
-            color: #94a3b8;
-            font-size: 12px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        .action-item i { font-size: 20px; }
-        .like-btn.liked i { color: #ef4444; }
-        
-        .btn-download { 
-            background: linear-gradient(45deg, #10b981, #059669); 
-            color: white; 
-            border: none;
-            padding: 15px;
-            border-radius: 12px;
-            font-weight: bold;
-            font-size: 16px;
-            width: 100%;
-            cursor: pointer;
-            margin-bottom: 25px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .comment-section { margin-top: 20px; }
-        .comment-input-box {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        .comment-input {
-            flex-grow: 1;
-            background: #1e293b;
-            border: 1px solid #334155;
-            padding: 12px 15px;
-            border-radius: 25px;
-            color: white;
-            outline: none;
-        }
-        .comment-submit {
-            background: #3b82f6;
-            color: white;
-            border: none;
-            width: 45px;
-            height: 45px;
-            border-radius: 50%;
-            cursor: pointer;
-        }
-    </style>
-</head>
-<body>
-    
-    <div class="header">
-        <button class="back-btn" onclick="goBack()"><i class="fa-solid fa-chevron-left"></i></button>
-        <span style="font-size: 18px; font-weight: bold;">ভিডিও ডিটেইলস</span>
-    </div>
-
-    <!-- Video Image & Title -->
-    <img src="{{ video_image }}" class="video-img" alt="Video">
-    
-    <div class="content-box">
-        <div class="title">{{ video_title }}</div>
-
-        <!-- Stats & Buttons -->
-        <div class="action-buttons">
-            <div class="action-item like-btn" onclick="sendAction('like')">
-                <i class="fa-solid fa-heart"></i>
-                <span id="likeCount">{{ likes }}</span>
-                <span>LIKE</span>
-            </div>
-            <div class="action-item">
-                <i class="fa-solid fa-download"></i>
-                <span id="dlCount">{{ downloads }}</span>
-                <span>DOWNLOAD</span>
-            </div>
-            <div class="action-item">
-                <i class="fa-solid fa-comment"></i>
-                <span>0</span>
-                <span>COMMENTS</span>
-            </div>
-            <div class="action-item" onclick="tg.showAlert('Copy the link from bot to share!')">
-                <i class="fa-solid fa-share"></i>
-                <span>0</span>
-                <span>SHARE</span>
-            </div>
-        </div>
-
-        <button class="btn-download" onclick="downloadVideo()">
-            <i class="fa-solid fa-cloud-arrow-down"></i> Download Video
-        </button>
-
-        <!-- Comment Section -->
-        <div class="comment-section">
-            <h3 style="font-size: 16px; margin-bottom: 15px; border-bottom: 1px solid #334155; padding-bottom: 10px;">Comments</h3>
-            <div class="comment-input-box">
-                <input type="text" id="commentText" class="comment-input" placeholder="Add a public comment...">
-                <button class="comment-submit" onclick="sendAction('comment')"><i class="fa-solid fa-paper-plane"></i></button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // Telegram ID Collect kora
-        let tg = window.Telegram.WebApp;
-        tg.expand();
-        
-        let telegramId = null;
-        if(tg.initDataUnsafe && tg.initDataUnsafe.user) {
-            telegramId = tg.initDataUnsafe.user.id;
-        }
-
-        let currentVideoId = "{{ video_id }}";
-
-        function goBack() {
-            window.history.back();
-        }
-
-        function sendAction(actionType) {
-            if (!telegramId) {
-                tg.showAlert("Please open this inside Telegram to " + actionType);
-                return;
-            }
-
-            let data = {
-                video_id: currentVideoId,
-                telegram_id: telegramId,
-                action: actionType
-            };
-
-            if (actionType === 'comment') {
-                data.comment_text = document.getElementById('commentText').value.trim();
-                if (!data.comment_text) return; 
-            }
-
-            fetch('/api/interact', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === "success") {
-                    if(actionType === 'like') {
-                        document.getElementById('likeCount').innerText = data.new_likes;
-                        document.querySelector('.like-btn').classList.add('liked');
-                    }
-                    if(actionType === 'comment') {
-                        document.getElementById('commentText').value = '';
-                        tg.showAlert("Comment added successfully!");
-                    }
-                }
-            })
-            .catch(error => console.error('Error:', error));
-        }
-
-        function downloadVideo() {
-            sendAction('download');
-            // User ke abr purono popup (Quality modal) er moto system e pathano jete pare
-            // Ba apnar bot theke auto file send korar logic ekhane connect kora jabe future a
-            tg.showAlert("Download started! Check your bot inbox.");
-        }
-    </script>
-</body>
-</html>
-"""
-
