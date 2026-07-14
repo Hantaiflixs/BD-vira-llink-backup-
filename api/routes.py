@@ -1493,5 +1493,3 @@ async def get_video_details_api(title: str):
         "comments": formatted_comments
     }
 
-Accha akta jinish ai je share bottom ta dilam aitar click korla jamon telgram ar share korar jaiga naia jai to aita ke kora somvob r link hoba hoita cilo telegr_user_name_bot?start=video_id mane amr video id na nam jaia takok seta copy hoba ba share hoba telegr ami share ai ok korla dircet telegr app naia jaba user list asba jar kaca icca share kora jaba 
-Mane bot dircet jaia /start=video_id hoba r akta video id ba file ar name ki keva ba bujbo va link thek copy korbo dako to
