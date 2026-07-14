@@ -738,16 +738,18 @@ HTML_CODE = r"""
                         };
                         
                         html += `
-                        <div class="card" onclick="openQualityModal(this)" data-title="${encodeURIComponent(m.title)}">
-                            <div class="post-content shimmer-placeholder">
-                                <img src="/api/image/${m.photo_id}" loading="lazy" onload="this.parentNode.classList.remove('shimmer-placeholder')" onerror="this.src='https://via.placeholder.com/640x360?text=No+Image'">
-                                <div class="ep-badge"><i class="fa-solid fa-bookmark text-yellow-400"></i> Saved</div>
+                        <a href="/video/${encodeURIComponent(m.title)}" style="text-decoration: none; color: inherit; display: block;">
+                            <div class="card" data-title="${encodeURIComponent(m.title)}">
+                                <div class="post-content shimmer-placeholder">
+                                    <img src="/api/image/${m.photo_id}" loading="lazy" onload="this.parentNode.classList.remove('shimmer-placeholder')" onerror="this.src='https://via.placeholder.com/640x360?text=No+Image'">
+                                    <div class="ep-badge"><i class="fa-solid fa-bookmark text-yellow-400"></i> Saved</div>
+                                </div>
+                                <div class="card-footer">
+                                    <div class="channel-logo">MB</div>
+                                    <div class="title-text">${m.title}</div>
+                                </div>
                             </div>
-                            <div class="card-footer">
-                                <div class="channel-logo">MB</div>
-                                <div class="title-text">${m.title}</div>
-                            </div>
-                        </div>`;
+                        </a>`;
                     });
                 }
                 document.getElementById('watchlistModalList').innerHTML = html;
@@ -1060,18 +1062,20 @@ HTML_CODE = r"""
                     let totalParts = m.files.length;
                     let partText = totalParts === 1 ? 'Part' : 'Parts';
                     
-                    return `<div class="trending-card" onclick="openQualityModal(this)" data-title="${encodeURIComponent(m._id)}">
-                        <div class="post-content shimmer-placeholder">
-                            <div class="top-badge">🔥 TOP</div>
-                            <img src="/api/image/${m.photo_id}" loading="lazy" onload="this.parentNode.classList.remove('shimmer-placeholder')" onerror="this.src='https://via.placeholder.com/640x360?text=No+Image'">
-                            <div class="ep-badge"><i class="fa-solid fa-list"></i> ${totalParts} ${partText}</div>
-                            <div class="view-badge" id="trend-view-${makeSafeId(m._id)}"><i class="fa-solid fa-eye"></i> ${formatViews(m.clicks)}</div>
+                    return `<a href="/video/${encodeURIComponent(m._id)}" style="text-decoration: none; color: inherit; display: block;">
+                        <div class="trending-card" data-title="${encodeURIComponent(m._id)}">
+                            <div class="post-content shimmer-placeholder">
+                                <div class="top-badge">🔥 TOP</div>
+                                <img src="/api/image/${m.photo_id}" loading="lazy" onload="this.parentNode.classList.remove('shimmer-placeholder')" onerror="this.src='https://via.placeholder.com/640x360?text=No+Image'">
+                                <div class="ep-badge"><i class="fa-solid fa-list"></i> ${totalParts} ${partText}</div>
+                                <div class="view-badge" id="trend-view-${makeSafeId(m._id)}"><i class="fa-solid fa-eye"></i> ${formatViews(m.clicks)}</div>
+                            </div>
+                            <div class="card-footer">
+                                <div class="channel-logo">MB</div>
+                                <div class="title-text">${m._id}</div>
+                            </div>
                         </div>
-                        <div class="card-footer">
-                            <div class="channel-logo">MB</div>
-                            <div class="title-text">${m._id}</div>
-                        </div>
-                    </div>`;
+                    </a>`;
                 }).join('');
                 setTimeout(startAutoScroll, 1000);
             } catch(e) {}
@@ -1121,17 +1125,19 @@ HTML_CODE = r"""
                     let totalParts = m.files.length;
                     let partText = totalParts === 1 ? 'Part' : 'Parts';
                     
-                    let cardHtml = `<div class="card" onclick="openQualityModal(this)" data-title="${encodeURIComponent(m._id)}">
-                        <div class="post-content shimmer-placeholder">
-                            <img src="/api/image/${m.photo_id}" loading="lazy" onload="this.parentNode.classList.remove('shimmer-placeholder')" onerror="this.src='https://via.placeholder.com/640x360?text=No+Image'">
-                            <div class="ep-badge"><i class="fa-solid fa-list"></i> ${totalParts} ${partText}</div>
-                            <div class="view-badge" id="list-view-${makeSafeId(m._id)}"><i class="fa-solid fa-eye"></i> ${formatViews(m.clicks)}</div>
+                    let cardHtml = `<a href="/video/${encodeURIComponent(m._id)}" style="text-decoration: none; color: inherit; display: block;">
+                        <div class="card" data-title="${encodeURIComponent(m._id)}">
+                            <div class="post-content shimmer-placeholder">
+                                <img src="/api/image/${m.photo_id}" loading="lazy" onload="this.parentNode.classList.remove('shimmer-placeholder')" onerror="this.src='https://via.placeholder.com/640x360?text=No+Image'">
+                                <div class="ep-badge"><i class="fa-solid fa-list"></i> ${totalParts} ${partText}</div>
+                                <div class="view-badge" id="list-view-${makeSafeId(m._id)}"><i class="fa-solid fa-eye"></i> ${formatViews(m.clicks)}</div>
+                            </div>
+                            <div class="card-footer">
+                                <div class="channel-logo">MB</div>
+                                <div class="title-text">${m._id}</div>
+                            </div>
                         </div>
-                        <div class="card-footer">
-                            <div class="channel-logo">MB</div>
-                            <div class="title-text">${m._id}</div>
-                        </div>
-                    </div>`;
+                    </a>`;
                     htmlContent += cardHtml;
                     
                     let visualIndex = index + 1 + ((currentPage - 1) * 15);
