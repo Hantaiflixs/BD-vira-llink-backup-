@@ -1606,3 +1606,238 @@ HTML_CODE = r"""
 </body>
 </html>
 """
+# html_template.py er ekdom sheshe nicher code tuku add korun:
+
+VIDEO_DETAILS_HTML = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>{{ video_title }} - Details</title>
+    <!-- Telegram Web App JS (Etai Telegram ID nibe) -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { 
+            background-color: #0f172a; 
+            color: white; 
+            font-family: sans-serif; 
+            margin: 0; 
+            padding: 0;
+            padding-bottom: 50px;
+        }
+        .header {
+            display: flex; 
+            align-items: center; 
+            padding: 15px; 
+            background: rgba(15, 23, 42, 0.95);
+            border-bottom: 1px solid #1e293b;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .back-btn {
+            background: #334155;
+            color: white;
+            border: none;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            cursor: pointer;
+        }
+        .video-img {
+            width: 100%;
+            height: auto;
+            max-height: 250px;
+            object-fit: cover;
+            border-bottom: 2px solid #38bdf8;
+        }
+        .content-box { padding: 15px; }
+        .title { font-size: 20px; font-weight: 900; margin-bottom: 15px; color: #f8fafc; }
+        
+        .action-buttons { 
+            display: flex; 
+            justify-content: space-between;
+            gap: 10px; 
+            margin-bottom: 25px; 
+            background: #1e293b;
+            padding: 15px;
+            border-radius: 12px;
+        }
+        .action-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            color: #94a3b8;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .action-item i { font-size: 20px; }
+        .like-btn.liked i { color: #ef4444; }
+        
+        .btn-download { 
+            background: linear-gradient(45deg, #10b981, #059669); 
+            color: white; 
+            border: none;
+            padding: 15px;
+            border-radius: 12px;
+            font-weight: bold;
+            font-size: 16px;
+            width: 100%;
+            cursor: pointer;
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .comment-section { margin-top: 20px; }
+        .comment-input-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .comment-input {
+            flex-grow: 1;
+            background: #1e293b;
+            border: 1px solid #334155;
+            padding: 12px 15px;
+            border-radius: 25px;
+            color: white;
+            outline: none;
+        }
+        .comment-submit {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="header">
+        <button class="back-btn" onclick="goBack()"><i class="fa-solid fa-chevron-left"></i></button>
+        <span style="font-size: 18px; font-weight: bold;">ভিডিও ডিটেইলস</span>
+    </div>
+
+    <!-- Video Image & Title -->
+    <img src="{{ video_image }}" class="video-img" alt="Video">
+    
+    <div class="content-box">
+        <div class="title">{{ video_title }}</div>
+
+        <!-- Stats & Buttons -->
+        <div class="action-buttons">
+            <div class="action-item like-btn" onclick="sendAction('like')">
+                <i class="fa-solid fa-heart"></i>
+                <span id="likeCount">{{ likes }}</span>
+                <span>LIKE</span>
+            </div>
+            <div class="action-item">
+                <i class="fa-solid fa-download"></i>
+                <span id="dlCount">{{ downloads }}</span>
+                <span>DOWNLOAD</span>
+            </div>
+            <div class="action-item">
+                <i class="fa-solid fa-comment"></i>
+                <span>0</span>
+                <span>COMMENTS</span>
+            </div>
+            <div class="action-item" onclick="tg.showAlert('Copy the link from bot to share!')">
+                <i class="fa-solid fa-share"></i>
+                <span>0</span>
+                <span>SHARE</span>
+            </div>
+        </div>
+
+        <button class="btn-download" onclick="downloadVideo()">
+            <i class="fa-solid fa-cloud-arrow-down"></i> Download Video
+        </button>
+
+        <!-- Comment Section -->
+        <div class="comment-section">
+            <h3 style="font-size: 16px; margin-bottom: 15px; border-bottom: 1px solid #334155; padding-bottom: 10px;">Comments</h3>
+            <div class="comment-input-box">
+                <input type="text" id="commentText" class="comment-input" placeholder="Add a public comment...">
+                <button class="comment-submit" onclick="sendAction('comment')"><i class="fa-solid fa-paper-plane"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Telegram ID Collect kora
+        let tg = window.Telegram.WebApp;
+        tg.expand();
+        
+        let telegramId = null;
+        if(tg.initDataUnsafe && tg.initDataUnsafe.user) {
+            telegramId = tg.initDataUnsafe.user.id;
+        }
+
+        let currentVideoId = "{{ video_id }}";
+
+        function goBack() {
+            window.history.back();
+        }
+
+        function sendAction(actionType) {
+            if (!telegramId) {
+                tg.showAlert("Please open this inside Telegram to " + actionType);
+                return;
+            }
+
+            let data = {
+                video_id: currentVideoId,
+                telegram_id: telegramId,
+                action: actionType
+            };
+
+            if (actionType === 'comment') {
+                data.comment_text = document.getElementById('commentText').value.trim();
+                if (!data.comment_text) return; 
+            }
+
+            fetch('/api/interact', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === "success") {
+                    if(actionType === 'like') {
+                        document.getElementById('likeCount').innerText = data.new_likes;
+                        document.querySelector('.like-btn').classList.add('liked');
+                    }
+                    if(actionType === 'comment') {
+                        document.getElementById('commentText').value = '';
+                        tg.showAlert("Comment added successfully!");
+                    }
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        function downloadVideo() {
+            sendAction('download');
+            // User ke abr purono popup (Quality modal) er moto system e pathano jete pare
+            // Ba apnar bot theke auto file send korar logic ekhane connect kora jabe future a
+            tg.showAlert("Download started! Check your bot inbox.");
+        }
+    </script>
+</body>
+</html>
+"""
+
