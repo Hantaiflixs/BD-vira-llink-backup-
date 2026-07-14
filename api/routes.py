@@ -17,18 +17,10 @@ from config import (
 )
 from helpers import validate_tg_data, verify_admin, format_views
 
-# ⚡ ERROR PREVENTION: HTML_CODE er sathe VIDEO_DETAILS_HTML import kora hocche
 try:
-    from html_template import HTML_CODE, VIDEO_DETAILS_HTML
-except ImportError:
     from html_template import HTML_CODE
-    # Jodi apni html_template.py te VIDEO_DETAILS_HTML add korte vule jan, tahole server crash korbe na.
-    VIDEO_DETAILS_HTML = """
-    <div style="color:white; text-align:center; padding: 50px; font-family: sans-serif; background: #0f172a; height: 100vh;">
-        <h2>⚠️ Error!</h2>
-        <p>Please add the <b>VIDEO_DETAILS_HTML</b> variable to your <i>html_template.py</i> file as instructed in Step 2.</p>
-    </div>
-    """
+except ImportError:
+    pass
 
 api_router = APIRouter()
 
@@ -38,7 +30,6 @@ api_router = APIRouter()
 settings_cache = {}
 
 async def fetch_setting(setting_id: str):
-    """ডাটাবেসের রিকোয়েস্ট কমাতে সেটিংস ক্যাশ মেমোরি থেকে রিটার্ন করে"""
     if setting_id in settings_cache:
         return settings_cache[setting_id]
     cfg = await db.settings.find_one({"id": setting_id})
@@ -46,7 +37,6 @@ async def fetch_setting(setting_id: str):
     return cfg
 
 def invalidate_settings_cache():
-    """সেটিংস আপডেট হলে মেমোরি ক্যাশ খালি করে"""
     settings_cache.clear()
 
 # ==========================================
@@ -103,7 +93,6 @@ class ReviewModel(BaseModel):
     review: str
     initData: str
 
-# ⚡ NEW FEATURE MODEL: Like, Comment, Download Tracker
 class InteractRequestModel(BaseModel):
     video_id: str
     telegram_id: int
@@ -831,7 +820,6 @@ async def web_admin_panel(auth: bool = Depends(verify_admin)):
 # ==========================================
 @api_router.get("/", response_class=HTMLResponse)
 async def web_ui():
-    # ডাটাবেসের জ্যাম কমাতে গ্লোবাল র‍্যাম ক্যাশ ব্যবহার করা হয়েছে
     tg_cfg = await fetch_setting("link_tg")
     support_cfg = await fetch_setting("link_support")
     b18_cfg = await fetch_setting("link_18")
@@ -925,7 +913,7 @@ async def buy_vip_api(d: UserActionModel):
     return {"ok": True}
 
 # ==========================================
-# 🛑 Videos Data APIs (Ascending Sort Enforced for Video Parts)
+# 🛑 Videos Data APIs
 # ==========================================
 @api_router.get("/api/trending")
 async def trending_movies(uid: int = 0):
@@ -942,7 +930,7 @@ async def trending_movies(uid: int = 0):
     else:
         seven_days_ago = datetime.datetime.utcnow() - datetime.timedelta(days=7)
         pipeline = [
-            {"$sort": {"created_at": 1}},  # আরোহী সর্টিং যাতে Video Part 1 সবার আগে গ্রুপে পুশ হয়
+            {"$sort": {"created_at": 1}},
             {"$group": {
                 "_id": "$title", 
                 "photo_id": {"$first": "$photo_id"}, 
@@ -998,7 +986,6 @@ async def list_movies(page: int = 1, q: str = "", uid: int = 0):
         movies = data["movies"]
         total_pages = data["total_pages"]
     else:
-        # ২০,০০০ ইউজারের জ্যাম এড়াতে পেজ সাইজ কমিয়ে ১৫ করা হয়েছে
         limit = 15  
         skip = (page - 1) * limit
         match_stage = {}
@@ -1006,7 +993,7 @@ async def list_movies(page: int = 1, q: str = "", uid: int = 0):
 
         pipeline = [
             {"$match": match_stage},
-            {"$sort": {"created_at": 1}},  # আরোহী সর্টিং যাতে Video Part 1 সবার আগে গ্রুপে পুশ হয়
+            {"$sort": {"created_at": 1}}, 
             {"$group": {"_id": "$title", "photo_id": {"$first": "$photo_id"}, "db_photo_id": {"$first": "$db_photo_id"}, "clicks": {"$sum": "$clicks"}, "created_at": {"$max": "$created_at"}, "files": {"$push": {"id": {"$toString": "$_id"}, "quality": {"$ifNull": ["$quality", "HD"]}}}}},
             {"$sort": {"created_at": -1}}, {"$skip": skip}, {"$limit": limit}
         ]
@@ -1022,7 +1009,6 @@ async def list_movies(page: int = 1, q: str = "", uid: int = 0):
         for f in m["files"]: f["is_unlocked"] = f["id"] in unlocked_ids
     return {"movies": movies, "total_pages": total_pages}
 
-# 🛑 AUTO-REPAIRING SYSTEM FOR PORTED THUMBNAILS (FIXED FOR AIOGRAM 3 & CDN CACHED)
 @api_router.get("/api/image/{photo_id}")
 async def get_image(photo_id: str):
     try:
@@ -1068,7 +1054,7 @@ async def get_image(photo_id: str):
                             )
                             file_path = (await bot.get_file(new_photo_id)).file_path
                     except Exception as err:
-                        logger.error(f"Image auto-repair failed for message {db_msg_id}: {err}")
+                        logger.error(f"Image auto-repair failed: {err}")
                     
         if file_path:
             await db.file_cache.update_one(
@@ -1089,18 +1075,13 @@ async def get_image(photo_id: str):
                         return
                     async for chunk in resp.content.iter_chunked(1024): yield chunk
 
-        # ক্লাউডফ্লেয়ার (Cloudflare CDN) এবং ব্রাউজারকে ১ বছর ক্যাশ করার সিগন্যাল প্রদান (ব্যান্ডউইথ বাঁচাবে)
-        headers = {
-            "Cache-Control": "public, max-age=31536000, immutable",
-            "Access-Control-Allow-Origin": "*"
-        }
+        headers = {"Cache-Control": "public, max-age=31536000, immutable", "Access-Control-Allow-Origin": "*"}
         return StreamingResponse(stream_image(), media_type="image/jpeg", headers=headers)
     except Exception as e: 
         logger.error(f"get_image error: {e}")
         return {"error": "error"}
 
 async def db_increment_view(title: str):
-    """ব্যাকগ্রাউন্ডে নন-ব্লকিং উপায়ে ভিউ ট্র্যাক করার প্রসেস"""
     try:
         await db.movies.update_many({"title": title}, {"$inc": {"clicks": 1}})
         await db.movie_views.insert_one({"title": title, "viewed_at": datetime.datetime.utcnow()})
@@ -1108,13 +1089,9 @@ async def db_increment_view(title: str):
 
 @api_router.post("/api/view_movie")
 async def increment_movie_view(d: ViewRequestModel, background_tasks: BackgroundTasks):
-    # ডাটাবেস রাইট রিকোয়েস্টকে ব্যাকগ্রাউন্ড টাস্কে পুশ করা হলো, ইউজার কোনো ল্যাগ ছাড়াই রেসপন্স পাবে
     background_tasks.add_task(db_increment_view, d.title)
     return {"ok": True}
 
-# ==========================================
-# 🛑 DYNAMIC PREMIUM VIDEO DELIVERY & REFERRAL SYSTEM
-# ==========================================
 @api_router.post("/api/send")
 async def send_file(d: SendRequestModel):
     if d.userId == 0 or not validate_tg_data(d.initData): return {"ok": False}
@@ -1130,19 +1107,14 @@ async def send_file(d: SendRequestModel):
             protect_cfg = await fetch_setting("protect_content")
             is_protected = protect_cfg['status'] if protect_cfg else True
             
-            # প্রিমিয়াম এআই ডাইনামিক মেসেজ লেআউট (টপ-লেভেল ভাইরালিটি)
             escaped_name = html.escape(user.get("first_name", "User") if user else "User")
             m_title = html.escape(m['title'])
             ref_link = f"https://t.me/{BOT_USERNAME}?start=ref_{d.userId}"
             
-            # মায়ার ৩টি অত্যন্ত আকর্ষণীয় মিষ্টি বাংলা ভিডিও ডেলিভারি টেমপ্লেট
             delivery_wishes = [
-                f"🍿 <b>Hey {escaped_name}!</b> Here is your video '<b>{m_title}</b>' 🎬\n\nভিডিওটি দেখার সময় বন্ধুদের ভুলো না কিন্তু! নিচে তোমার স্পেশাল শেয়ার লিংকটি দিলাম, বন্ধুদের সাথে শেয়ার করলেই পেয়ে যাবে ফ্রি Gems। একসাথে দেখার মজাই আলাদা! 😍\n\n🔗 <b>Your Invite Link:</b> <code>{ref_link}</code>",
-                f"🍿 <b>আরে {escaped_name}!</b> তোমার কাঙ্ক্ষিত ভিডিও '<b>{m_title}</b>' নিয়ে আমি হাজির! 🎬\n\nভিডিওটি কেমন লাগলো আমাকে জানাতে ভুলো কন কিন্তু! আর হ্যাঁ, নিচের ইনভাইট লিংকটি বন্ধুদের পাঠিয়ে ফ্রিতে Gems নিয়ে নাও, একসাথে দেখলে আনন্দ দ্বিগুণ হবে! 😉❤️\n\n🔗 <b>Your Invite Link:</b> <code>{ref_link}</code>",
-                f"🍿 <b>রিল্যাক্স {escaped_name}!</b> তোমার পছন্দের ভিডিও '<b>{m_title}</b>' এসে গেছে! 🎬\n\nপপকর্ন নিয়ে রেডি তো? ভিডিওটি বন্ধুদের সাথে শেয়ার করতে চাইলে নিচের লিংকটি কপি করে পাঠিয়ে দাও। শেয়ার করলেই পাবে ফ্রিতে Gems! 🍿✨\n\n🔗 <b>Your Invite Link:</b> <code>{ref_link}</code>"
+                f"🍿 <b>Hey {escaped_name}!</b> Here is your video '<b>{m_title}</b>' 🎬\n\nভিডিওটি দেখার সময় বন্ধুদের ভুলো না কিন্তু! নিচে তোমার স্পেশাল শেয়ার লিংকটি দিলাম, বন্ধুদের সাথে শেয়ার করলেই পেয়ে যাবে ফ্রি Gems। একসাথে দেখার মজাই আলাদা! 😍\n\n🔗 <b>Your Invite Link:</b> <code>{ref_link}</code>"
             ]
             maya_wish = random.choice(delivery_wishes)
-            
             caption = f"{maya_wish}\n\n📥 Join: @getnewlink11"
             if not is_vip: caption += f"\n\n⏳ <i>সতর্কতা: সিকিউরিটির জন্য এই ভিডিওটি <b>{del_minutes} মিনিট</b> পর অটোমেটিক ডিলিট হয়ে যাবে!</i>"
             
@@ -1168,16 +1140,8 @@ async def handle_request(data: ReqModel):
     vip_tag = "🔥 <b>[VIP PRIORITY]</b>\n" if is_vip else ""
     now = datetime.datetime.utcnow()
     await db.requests.insert_one({"user_id": data.uid, "uname": data.uname, "movie": data.movie, "status": "pending", "created_at": now, "is_vip": is_vip})
-    all_admins = set([OWNER_ID])
-    async for a in db.admins.find(): all_admins.add(a["user_id"])
-    for admin_id in all_admins:
-        try: await bot.send_message(admin_id, f"{vip_tag}🔔 <b>নতুন ভিডিও রিকোয়েস্ট!</b>\n👤 ইউজার: {data.uname} (<code>{data.uid}</code>)\n🎬 ভিডিও: <b>{data.movie}</b>", parse_mode="HTML")
-        except Exception: pass
     return {"ok": True}
 
-# ==========================================
-# 🛑 Advertising Campaign APIs
-# ==========================================
 @api_router.post("/api/ads/create")
 async def create_sponsored_ad(d: AdCreateModel):
     if not validate_tg_data(d.initData): return {"ok": False, "msg": "Invalid Request"}
@@ -1189,8 +1153,6 @@ async def create_sponsored_ad(d: AdCreateModel):
     now = datetime.datetime.utcnow()
     await db.users.update_one({"user_id": d.uid}, {"$inc": {"coins": -cost}})
     await db.ads.insert_one({"user_id": d.uid, "title": d.title, "subtitle": d.subtitle, "link": d.link, "image_url": d.image_url, "created_at": now, "expires_at": now + datetime.timedelta(days=days)})
-    try: await bot.send_message(OWNER_ID, f"📢 <b>New Ad Campaign Started!</b>\n👤 User ID: <code>{d.uid}</code>\n📝 Title: {d.title}\n🔗 Link: {d.link}\n⏳ Duration: {days} Days\n💰 Paid: {cost} Coins", parse_mode="HTML")
-    except: pass
     return {"ok": True, "msg": "Ad campaign started successfully!"}
 
 @api_router.get("/api/ads/active")
@@ -1200,9 +1162,6 @@ async def get_active_ads():
     for ad in ads: ad['_id'] = str(ad['_id'])
     return ads
 
-# ==========================================
-# 🛑 Watchlist & Review System APIs (Ascending Sort Enforced for Video Parts)
-# ==========================================
 @api_router.post("/api/watchlist/add")
 async def add_to_watchlist(d: WatchlistModel):
     if not validate_tg_data(d.initData): return {"ok": False}
@@ -1223,7 +1182,7 @@ async def get_watchlist(uid: int):
     if not watchlist: return {"watchlist": []}
     pipeline = [
         {"$match": {"title": {"$in": watchlist}}}, 
-        {"$sort": {"created_at": 1}},  # আরোহী সর্টিং যাতে Video Part 1 সবার আগে গ্রুপে পুশ হয়
+        {"$sort": {"created_at": 1}},
         {"$group": {"_id": "$title", "photo_id": {"$first": "$photo_id"}, "db_photo_id": {"$first": "$db_photo_id"}, "clicks": {"$sum": "$clicks"}, "created_at": {"$max": "$created_at"}, "files": {"$push": {"id": {"$toString": "$_id"}, "quality": {"$ifNull": ["$quality", "HD"]}}}}}, 
         {"$sort": {"created_at": -1}}
     ]
@@ -1250,9 +1209,6 @@ async def get_reviews(title: str):
         r["created_at"] = r["created_at"].isoformat()
     return {"reviews": reviews, "avg_rating": round(avg_r, 1)}
 
-# ==========================================
-# 🛑 Gamification Daily Activity & Wheel
-# ==========================================
 @api_router.post("/api/gamification/daily_checkin")
 async def daily_checkin(d: UserActionModel):
     if not validate_tg_data(d.initData): return {"ok": False}
@@ -1264,7 +1220,6 @@ async def daily_checkin(d: UserActionModel):
     await db.users.update_one({"user_id": d.uid}, {"$set": {"last_check_in": now}, "$inc": {"coins": 5}})
     return {"ok": True, "coins": user.get("coins", 0) + 5}
 
-# 🛑 UPDATE: মায়ার মিষ্টি ধমক ও এআই সুইট ওয়ার্নিং ইন্টিগ্রেটেড
 @api_router.post("/api/gamification/spin")
 async def spin_wheel(d: UserActionModel):
     if not validate_tg_data(d.initData): return {"ok": False}
@@ -1272,11 +1227,7 @@ async def spin_wheel(d: UserActionModel):
     
     if not user or user.get("coins", 0) < 5: 
         user_name = user.get("first_name", "User") if user else "User"
-        # Gems কম থাকলে মায়ার মিষ্টি ধমক মেসেজ পপ-আপ
-        return {
-            "ok": False, 
-            "msg": f"আরে {user_name}! 🥺 স্পিন করতে ৫ Gems প্রয়োজন। তোমার ব্যালেন্স কম আছে। বন্ধুদের ইনভাইট লিংক শেয়ার করে Gems বাড়িয়ে নাও, জলদি যাও! 😉✨"
-        }
+        return {"ok": False, "msg": f"আরে {user_name}! 🥺 স্পিন করতে ৫ Gems প্রয়োজন। তোমার ব্যালেন্স কম আছে। বন্ধুদের ইনভাইট লিংক শেয়ার করে Gems বাড়িয়ে নাও, জলদি যাও! 😉✨"}
         
     rewards = [{"type": "points", "amount": 0, "weight": 35}, {"type": "points", "amount": 2, "weight": 25}, {"type": "points", "amount": 5, "weight": 20}, {"type": "points", "amount": 10, "weight": 12}, {"type": "points", "amount": 20, "weight": 5}, {"type": "points", "amount": 50, "weight": 2}, {"type": "vip", "days": 1, "weight": 1}]
     choices = []
@@ -1330,7 +1281,6 @@ async def get_admin_data(page: int = 1, q: str = "", auth: bool = Depends(verify
     limit = 20
     skip = (page - 1) * limit
     match_stage = {"title": {"$regex": q, "$options": "i"}} if q else {}
-    
     pipeline = [
         {"$match": match_stage},
         {"$group": {"_id": "$title", "clicks": {"$sum": "$clicks"}, "file_count": {"$sum": 1}, "created_at": {"$max": "$created_at"}}}, 
@@ -1339,10 +1289,8 @@ async def get_admin_data(page: int = 1, q: str = "", auth: bool = Depends(verify
         {"$limit": limit}
     ]
     movies = await db.movies.aggregate(pipeline).to_list(limit)
-    
     total_groups = await db.movies.aggregate([{"$match": match_stage}, {"$group": {"_id": "$title"}}, {"$count": "total"}]).to_list(1)
     total_pages = (total_groups[0]["total"] + limit - 1) // limit if total_groups else 0
-    
     return {"movies": movies, "total_pages": total_pages}
 
 @api_router.delete("/api/admin/movie/{title}")
@@ -1404,13 +1352,11 @@ async def add_keyword_api(data: dict = Body(...), auth: bool = Depends(verify_ad
     rep = data.get("reply_message", "").strip()
     if not kw or not rep: raise HTTPException(status_code=400, detail="Missing data")
     await db.keyword_replies.update_one({"keyword": kw}, {"$set": {"keyword": kw, "reply_message": rep}}, upsert=True)
-    await load_keyword_replies()
     return {"ok": True}
 
 @api_router.delete("/api/admin/keywords/{keyword}")
 async def delete_keyword_api(keyword: str, auth: bool = Depends(verify_admin)):
     await db.keyword_replies.delete_one({"keyword": keyword.lower()})
-    await load_keyword_replies()
     return {"ok": True}
 
 @api_router.get("/api/admin/users/search")
@@ -1488,55 +1434,20 @@ async def get_analytics(auth: bool = Depends(verify_admin)):
     }
 
 # ==========================================
-# 🛑 Video Details & Interactions APIs (NEW FEATURE)
+# 🛑 API for Like & Comment System (Details Page)
 # ==========================================
-@api_router.get("/video/{video_id}", response_class=HTMLResponse)
-async def show_video_details(video_id: str):
-    # Database theke video details niye asha hocche
-    m = await db.movies.find_one({"title": video_id})
-    
-    photo_id = m.get("photo_id") if m else ""
-    if not photo_id and m and m.get("db_photo_id"):
-        photo_id = f"db_{m['db_photo_id']}"
-        
-    video_image = f"/api/image/{photo_id}" if photo_id else "https://via.placeholder.com/640x360?text=No+Image"
-    downloads = m.get("downloads", 0) if m else 0
-    likes = m.get("likes", 0) if m else 0
-    
-    # Optional download link 
-    download_url = "#" 
-    
-    # HTML File e data pathano hocche
-    compiled_html = VIDEO_DETAILS_HTML.replace(
-        "{{ video_id }}", str(video_id)
-    ).replace(
-        "{{ video_title }}", str(video_id)
-    ).replace(
-        "{{ video_image }}", str(video_image)
-    ).replace(
-        "{{ download_url }}", str(download_url)
-    ).replace(
-        "{{ likes }}", str(likes)
-    ).replace(
-        "{{ downloads }}", str(downloads)
-    )
-    return compiled_html
-
 @api_router.post("/api/interact")
 async def handle_interaction(d: InteractRequestModel):
-    if not d.telegram_id:
-        return {"status": "error", "message": "Telegram ID missing"}
+    if not d.telegram_id: return {"status": "error", "message": "Telegram ID missing"}
         
     now = datetime.datetime.utcnow()
     
     if d.action == 'like':
-        # Database e verify kora hocche jate double like porte na pare
         existing_like = await db.likes.find_one({"video_id": d.video_id, "user_id": d.telegram_id})
         if not existing_like:
             await db.likes.insert_one({"video_id": d.video_id, "user_id": d.telegram_id, "created_at": now})
             await db.movies.update_many({"title": d.video_id}, {"$inc": {"likes": 1}})
-        
-        # Natun like count return kora hocche jate sathe sathe count update hoy
+            
         m = await db.movies.find_one({"title": d.video_id})
         new_likes = m.get("likes", 0) if m else 0
         return {"status": "success", "new_likes": new_likes}
@@ -1554,9 +1465,32 @@ async def handle_interaction(d: InteractRequestModel):
                 "created_at": now
             })
         return {"status": "success"}
+
+@api_router.get("/api/video_details/{title}")
+async def get_video_details_api(title: str):
+    m = await db.movies.find_one({"title": title})
+    likes = m.get("likes", 0) if m else 0
+    clicks = m.get("clicks", 0) if m else 0
+    
+    # Fetch comments for this video
+    comments = await db.video_comments.find({"video_id": title}).sort("created_at", -1).to_list(50)
+    formatted_comments = []
+    for c in comments:
+        try:
+            date_str = c.get("created_at").strftime("%d %b, %H:%M") if c.get("created_at") else ""
+        except:
+            date_str = ""
+            
+        formatted_comments.append({
+            "uname": c.get("uname", "User"),
+            "comment": c.get("comment", ""),
+            "date": date_str
+        })
         
-    elif d.action == 'download':
-        await db.movies.update_many({"title": d.video_id}, {"$inc": {"downloads": 1}})
-        return {"status": "success"}
-        
-    return {"status": "error", "message": "Invalid action"}
+    return {
+        "ok": True,
+        "likes": likes,
+        "downloads": clicks, 
+        "comment_count": len(formatted_comments),
+        "comments": formatted_comments
+    }
