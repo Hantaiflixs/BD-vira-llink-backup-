@@ -312,8 +312,8 @@ HTML_CODE = r"""
     <div class="developer-credit">
         <div class="dev-title"><i class="fa-solid fa-laptop-code"></i> Developed & Deployed By</div>
         <div class="dev-name">Bot Developer</div>
-        <div class="dev-desc">Do you want to create a high-quality premium movie bot for your channel or group? Contact us today.</div>
-        <button class="dev-btn" onclick="window.open('https://t.me/ProBotDeveloperBot', '_blank')">
+        <div class="dev-desc">Do you want remove any content from bot & if you face any Problem ? Contact us today.</div>
+        <button class="dev-btn" onclick="window.open('https://t.me/contentremoval_1bot', '_blank')">
             <i class="fa-brands fa-telegram"></i> Contact Developer
         </button>
     </div>
