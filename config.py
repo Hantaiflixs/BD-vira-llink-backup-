@@ -33,8 +33,8 @@ BOT_USERNAME = "bdvirallink_1bot"
 
 APP_URL = os.getenv("APP_URL", "http://localhost:8000")
 
-TUTORIAL_LINK = "https://t.me/HowtoDowlnoad/41"
-REQUEST_LINK = "https://t.me/+NEMfLNawn2hkNjg9"
+TUTORIAL_LINK = "https://t.me/howtodowloadvideo/2"
+REQUEST_LINK = "https://t.me/+4bfJX8PLBLc2MjI9"
 
 _db_ch = "-1004328471246"                       
 DB_CHANNEL_ID = int(_db_ch) if _db_ch.lstrip('-').isdigit() else None
