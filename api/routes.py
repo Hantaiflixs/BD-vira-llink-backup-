@@ -25,15 +25,13 @@ except ImportError:
 api_router = APIRouter()
 
 # ==========================================
-# ⚡ Global System Settings Memory Cache
+# ⚡ Global System Settings (LIVE MODE)
 # ==========================================
 settings_cache = {}
 
 async def fetch_setting(setting_id: str):
-    if setting_id in settings_cache:
-        return settings_cache[setting_id]
+    # Cache system off kora holo jate bot er command sathe sathe web e kaj kore
     cfg = await db.settings.find_one({"id": setting_id})
-    settings_cache[setting_id] = cfg
     return cfg
 
 def invalidate_settings_cache():
@@ -1494,3 +1492,6 @@ async def get_video_details_api(title: str):
         "comment_count": len(formatted_comments),
         "comments": formatted_comments
     }
+
+Accha akta jinish ai je share bottom ta dilam aitar click korla jamon telgram ar share korar jaiga naia jai to aita ke kora somvob r link hoba hoita cilo telegr_user_name_bot?start=video_id mane amr video id na nam jaia takok seta copy hoba ba share hoba telegr ami share ai ok korla dircet telegr app naia jaba user list asba jar kaca icca share kora jaba 
+Mane bot dircet jaia /start=video_id hoba r akta video id ba file ar name ki keva ba bujbo va link thek copy korbo dako to
