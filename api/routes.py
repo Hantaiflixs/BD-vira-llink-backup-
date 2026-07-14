@@ -16,7 +16,19 @@ from config import (
     clear_app_cache, TOKEN, logger
 )
 from helpers import validate_tg_data, verify_admin, format_views
-from html_template import HTML_CODE
+
+# ⚡ ERROR PREVENTION: HTML_CODE er sathe VIDEO_DETAILS_HTML import kora hocche
+try:
+    from html_template import HTML_CODE, VIDEO_DETAILS_HTML
+except ImportError:
+    from html_template import HTML_CODE
+    # Jodi apni html_template.py te VIDEO_DETAILS_HTML add korte vule jan, tahole server crash korbe na.
+    VIDEO_DETAILS_HTML = """
+    <div style="color:white; text-align:center; padding: 50px; font-family: sans-serif; background: #0f172a; height: 100vh;">
+        <h2>⚠️ Error!</h2>
+        <p>Please add the <b>VIDEO_DETAILS_HTML</b> variable to your <i>html_template.py</i> file as instructed in Step 2.</p>
+    </div>
+    """
 
 api_router = APIRouter()
 
@@ -90,6 +102,13 @@ class ReviewModel(BaseModel):
     rating: int
     review: str
     initData: str
+
+# ⚡ NEW FEATURE MODEL: Like, Comment, Download Tracker
+class InteractRequestModel(BaseModel):
+    video_id: str
+    telegram_id: int
+    action: str
+    comment_text: str = None
 
 # ==========================================
 # 🛑 System Settings API
@@ -1119,7 +1138,7 @@ async def send_file(d: SendRequestModel):
             # মায়ার ৩টি অত্যন্ত আকর্ষণীয় মিষ্টি বাংলা ভিডিও ডেলিভারি টেমপ্লেট
             delivery_wishes = [
                 f"🍿 <b>Hey {escaped_name}!</b> Here is your video '<b>{m_title}</b>' 🎬\n\nভিডিওটি দেখার সময় বন্ধুদের ভুলো না কিন্তু! নিচে তোমার স্পেশাল শেয়ার লিংকটি দিলাম, বন্ধুদের সাথে শেয়ার করলেই পেয়ে যাবে ফ্রি Gems। একসাথে দেখার মজাই আলাদা! 😍\n\n🔗 <b>Your Invite Link:</b> <code>{ref_link}</code>",
-                f"🍿 <b>আরে {escaped_name}!</b> তোমার কাঙ্ক্ষিত ভিডিও '<b>{m_title}</b>' নিয়ে আমি হাজির! 🎬\n\nভিডিওটি কেমন লাগলো আমাকে জানাতে ভুলো না কিন্তু! আর হ্যাঁ, নিচের ইনভাইট লিংকটি বন্ধুদের পাঠিয়ে ফ্রিতে Gems নিয়ে নাও, একসাথে দেখলে আনন্দ দ্বিগুণ হবে! 😉❤️\n\n🔗 <b>Your Invite Link:</b> <code>{ref_link}</code>",
+                f"🍿 <b>আরে {escaped_name}!</b> তোমার কাঙ্ক্ষিত ভিডিও '<b>{m_title}</b>' নিয়ে আমি হাজির! 🎬\n\nভিডিওটি কেমন লাগলো আমাকে জানাতে ভুলো কন কিন্তু! আর হ্যাঁ, নিচের ইনভাইট লিংকটি বন্ধুদের পাঠিয়ে ফ্রিতে Gems নিয়ে নাও, একসাথে দেখলে আনন্দ দ্বিগুণ হবে! 😉❤️\n\n🔗 <b>Your Invite Link:</b> <code>{ref_link}</code>",
                 f"🍿 <b>রিল্যাক্স {escaped_name}!</b> তোমার পছন্দের ভিডিও '<b>{m_title}</b>' এসে গেছে! 🎬\n\nপপকর্ন নিয়ে রেডি তো? ভিডিওটি বন্ধুদের সাথে শেয়ার করতে চাইলে নিচের লিংকটি কপি করে পাঠিয়ে দাও। শেয়ার করলেই পাবে ফ্রিতে Gems! 🍿✨\n\n🔗 <b>Your Invite Link:</b> <code>{ref_link}</code>"
             ]
             maya_wish = random.choice(delivery_wishes)
@@ -1467,3 +1486,77 @@ async def get_analytics(auth: bool = Depends(verify_admin)):
         "top_videos": top_v, 
         "top_rated": t_r
     }
+
+# ==========================================
+# 🛑 Video Details & Interactions APIs (NEW FEATURE)
+# ==========================================
+@api_router.get("/video/{video_id}", response_class=HTMLResponse)
+async def show_video_details(video_id: str):
+    # Database theke video details niye asha hocche
+    m = await db.movies.find_one({"title": video_id})
+    
+    photo_id = m.get("photo_id") if m else ""
+    if not photo_id and m and m.get("db_photo_id"):
+        photo_id = f"db_{m['db_photo_id']}"
+        
+    video_image = f"/api/image/{photo_id}" if photo_id else "https://via.placeholder.com/640x360?text=No+Image"
+    downloads = m.get("downloads", 0) if m else 0
+    likes = m.get("likes", 0) if m else 0
+    
+    # Optional download link 
+    download_url = "#" 
+    
+    # HTML File e data pathano hocche
+    compiled_html = VIDEO_DETAILS_HTML.replace(
+        "{{ video_id }}", str(video_id)
+    ).replace(
+        "{{ video_title }}", str(video_id)
+    ).replace(
+        "{{ video_image }}", str(video_image)
+    ).replace(
+        "{{ download_url }}", str(download_url)
+    ).replace(
+        "{{ likes }}", str(likes)
+    ).replace(
+        "{{ downloads }}", str(downloads)
+    )
+    return compiled_html
+
+@api_router.post("/api/interact")
+async def handle_interaction(d: InteractRequestModel):
+    if not d.telegram_id:
+        return {"status": "error", "message": "Telegram ID missing"}
+        
+    now = datetime.datetime.utcnow()
+    
+    if d.action == 'like':
+        # Database e verify kora hocche jate double like porte na pare
+        existing_like = await db.likes.find_one({"video_id": d.video_id, "user_id": d.telegram_id})
+        if not existing_like:
+            await db.likes.insert_one({"video_id": d.video_id, "user_id": d.telegram_id, "created_at": now})
+            await db.movies.update_many({"title": d.video_id}, {"$inc": {"likes": 1}})
+        
+        # Natun like count return kora hocche jate sathe sathe count update hoy
+        m = await db.movies.find_one({"title": d.video_id})
+        new_likes = m.get("likes", 0) if m else 0
+        return {"status": "success", "new_likes": new_likes}
+        
+    elif d.action == 'comment':
+        if d.comment_text:
+            user = await db.users.find_one({"user_id": d.telegram_id})
+            uname = user.get("first_name", "User") if user else "User"
+            
+            await db.video_comments.insert_one({
+                "video_id": d.video_id, 
+                "user_id": d.telegram_id, 
+                "uname": uname,
+                "comment": d.comment_text, 
+                "created_at": now
+            })
+        return {"status": "success"}
+        
+    elif d.action == 'download':
+        await db.movies.update_many({"title": d.video_id}, {"$inc": {"downloads": 1}})
+        return {"status": "success"}
+        
+    return {"status": "error", "message": "Invalid action"}
