@@ -832,7 +832,7 @@ async def web_ui():
     ad_interval = interval_cfg["interval"] if interval_cfg else 3
     
     tg_url = tg_cfg['url'] if tg_cfg else "https://t.me/+Sr1C42A4v2M5NmI9"
-    support_link = support_cfg['url'] if support_cfg else "https://t.me/YourSupportUsername"
+    support_link = support_cfg['url'] if support_cfg else "https://t.me/contentremoval_1bot"
     link_18 = b18_cfg['url'] if b18_cfg else "https://t.me/+MEVxls-VFSZhZjQ1"
     direct_links = dl_cfg.get('links', []) if dl_cfg else []
     dl_json = json.dumps(direct_links)
