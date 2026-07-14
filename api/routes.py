@@ -824,9 +824,9 @@ async def web_ui():
     ad_wait_seconds = ad_time_cfg['seconds'] if ad_time_cfg else 10
     ad_interval = interval_cfg["interval"] if interval_cfg else 3
     
-    tg_url = tg_cfg['url'] if tg_cfg else "https://t.me/MovieeBD"
+    tg_url = tg_cfg['url'] if tg_cfg else "https://t.me/+Sr1C42A4v2M5NmI9"
     support_link = support_cfg['url'] if support_cfg else "https://t.me/YourSupportUsername"
-    link_18 = b18_cfg['url'] if b18_cfg else "https://t.me/MovieeBD"
+    link_18 = b18_cfg['url'] if b18_cfg else "https://t.me/+MEVxls-VFSZhZjQ1"
     direct_links = dl_cfg.get('links', []) if dl_cfg else []
     dl_json = json.dumps(direct_links)
     
@@ -1124,7 +1124,7 @@ async def send_file(d: SendRequestModel):
             ]
             maya_wish = random.choice(delivery_wishes)
             
-            caption = f"{maya_wish}\n\n📥 Join: @TGLinkBase"
+            caption = f"{maya_wish}\n\n📥 Join: @getnewlink11"
             if not is_vip: caption += f"\n\n⏳ <i>সতর্কতা: সিকিউরিটির জন্য এই ভিডিওটি <b>{del_minutes} মিনিট</b> পর অটোমেটিক ডিলিট হয়ে যাবে!</i>"
             
             db_file_id = m.get("db_file_id")
